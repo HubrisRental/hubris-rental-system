@@ -139,7 +139,7 @@
 </div>
 
 <script>
-// CONFIGURAZIONE GLOBALE
+<script>
 let CONFIG = {
     API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
     SHEETS_ID: '1SLA0PwsRnQ0ow6TuUZPsZ0d9tcUqpJKR_IFMSKI9g1s',
@@ -147,13 +147,12 @@ let CONFIG = {
     QUOTES_RANGE: 'Preventivi_Salvati!A:Z'
 };
 
-// STATO GLOBALE
 let equipmentDatabase = {};
 let savedQuotes = [];
 let isConnected = false;
 let gapi_loaded = false;
+let rowCounter = 0;
 
-// GOOGLE SHEETS API INITIALIZATION
 function initializeGoogleAPI() {
     updateConnectionStatus('syncing', 'Connessione in corso...');
     gapi.load('client', async () => {
@@ -166,16 +165,14 @@ function initializeGoogleAPI() {
             isConnected = true;
             updateConnectionStatus('online', 'Connesso');
             await loadDatabaseFromSheets();
-            showNotification('✅ Connessione Google Sheets stabilita!', 'success');
+            showNotification('✅ Sistema completo caricato!', 'success');
         } catch (error) {
-            console.error('Errore API:', error);
             updateConnectionStatus('offline', 'Errore connessione');
             showNotification('❌ Errore: ' + error.message, 'error');
         }
     });
 }
 
-// GOOGLE SHEETS DATA LOADING
 async function loadDatabaseFromSheets() {
     if (!gapi_loaded || !isConnected) return;
     try {
@@ -191,13 +188,11 @@ async function loadDatabaseFromSheets() {
         updateSyncTime();
         showNotification('✅ Database caricato: ' + Object.keys(equipmentDatabase).length + ' categorie', 'success');
     } catch (error) {
-        console.error('Errore caricamento:', error);
         updateConnectionStatus('offline', 'Errore sync');
-        showNotification('❌ Errore caricamento: ' + error.message, 'error');
+        showNotification('❌ Errore: ' + error.message, 'error');
     }
 }
 
-// DATA PROCESSING
 function processEquipmentData(values) {
     equipmentDatabase = {};
     const processedData = [];
@@ -224,7 +219,6 @@ function processEquipmentData(values) {
     updateDbStats();
 }
 
-// UI RENDERING
 function renderDatabase(data) {
     const tbody = document.getElementById('databaseBody');
     tbody.innerHTML = '';
@@ -239,14 +233,305 @@ function renderDatabase(data) {
             categoryRow.style.background = 'linear-gradient(135deg, #FF9800, #F57C00)';
             categoryRow.style.color = 'white';
             categoryRow.style.fontWeight = 'bold';
-            categoryRow.innerHTML = '<td colspan="7" style="text-align: center; font-weight: bold;">📁 ' + item.category + '</td>';
+            categoryRow.innerHTML = '<td colspan="7" style="text-align: center;">📁 ' + item.category + '</td>';
             tbody.appendChild(categoryRow);
             currentCategory = item.category;
         }
         const row = document.createElement('tr');
-        row.innerHTML = '<td style="font-weight: 500;">' + item.name + '</td><td>€ ' + item.price1.toFixed(2) + '</td><td>€ ' + item.price3.toFixed(2) + '</td><td>€ ' + item.price7.toFixed(2) + '</td><td>€ ' + item.insurance.toLocaleString() + '</td><td style="font-size: 12px; color: #666;">' + item.kit + '</td><td><button class="btn btn-warning" style="padding: 6px 12px; font-size: 12px;">✏️</button></td>';
+        row.innerHTML = '<td>' + item.name + '</td><td>€ ' + item.price1.toFixed(2) + '</td><td>€ ' + item.price3.toFixed(2) + '</td><td>€ ' + item.price7.toFixed(2) + '</td><td>€ ' + item.insurance.toLocaleString() + '</td><td style="font-size: 12px;">' + item.kit + '</td><td><button class="btn btn-warning" style="padding: 6px;">✏️</button></td>';
         tbody.appendChild(row);
     });
+}
+
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabName).classList.add('active');
+    event.target.classList.add('active');
+    
+    if (tabName === 'quotes') createQuotesTab();
+    if (tabName === 'saved') createSavedTab();
+    if (tabName === 'analytics') createAnalyticsTab();
+}
+
+function createQuotesTab() {
+    document.getElementById('quotes').innerHTML = `
+        <h2 style="color: #2c5aa0; margin-bottom: 20px;">🎬 Nuovo Preventivo</h2>
+        <div style="background: #f8f9ff; padding: 20px; border-radius: 15px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr auto auto auto; gap: 15px; align-items: end;">
+                <div><label style="display: block; margin-bottom: 8px; font-weight: bold;">Nome Preventivo</label><input type="text" id="quoteName" placeholder="Es: Spot TV Audi Q3" class="form-input" style="width: 100%;"></div>
+                <button class="btn btn-success" onclick="saveQuote()">💾 Salva</button>
+                <button class="btn btn-primary" onclick="addEquipmentRow()">+ Attrezzatura</button>
+                <button class="btn btn-info" onclick="generatePDF()">📄 PDF</button>
+            </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div><label style="display: block; margin-bottom: 8px; font-weight: bold;">Cliente</label><input type="text" id="cliente" placeholder="Nome cliente" class="form-input" style="width: 100%;"></div>
+            <div><label style="display: block; margin-bottom: 8px; font-weight: bold;">Data Carico</label><input type="date" id="carico" class="form-input" style="width: 100%;"></div>
+            <div><label style="display: block; margin-bottom: 8px; font-weight: bold;">Data Scarico</label><input type="date" id="scarico" class="form-input" style="width: 100%;"></div>
+            <div><label style="display: block; margin-bottom: 8px; font-weight: bold;">Durata (gg)</label><input type="number" id="durata" value="1" min="1" onchange="updateAllPrices()" class="form-input" style="width: 100%;"></div>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.08);">
+            <thead><tr style="background: linear-gradient(135deg, #2c5aa0, #1a4480); color: white;">
+                <th style="padding: 15px; text-align: left;">Categoria</th>
+                <th style="padding: 15px; text-align: left;">Attrezzatura</th>
+                <th style="padding: 15px; text-align: left;">Qtà</th>
+                <th style="padding: 15px; text-align: left;">Prezzo Unit.</th>
+                <th style="padding: 15px; text-align: left;">Totale</th>
+                <th style="padding: 15px; text-align: left;">Azioni</th>
+            </tr></thead>
+            <tbody id="equipmentRows"></tbody>
+        </table>
+        <div style="margin-top: 20px; padding: 25px; background: linear-gradient(135deg, #f8f9ff, #e8f5e8); border-radius: 15px; border: 2px solid #e1e5e9;">
+            <div style="text-align: right;">
+                <div style="margin: 8px 0; display: flex; justify-content: space-between;"><span>Subtotale:</span><span id="subtotale">€ 0.00</span></div>
+                <div style="margin: 8px 0; display: flex; justify-content: space-between;"><span>Sconto:</span><span id="sconto-amount">€ 0.00</span></div>
+                <div style="margin: 8px 0; display: flex; justify-content: space-between;"><span>IVA (22%):</span><span id="iva">€ 0.00</span></div>
+                <div style="margin: 15px 0 0 0; padding-top: 12px; border-top: 2px solid #2c5aa0; font-size: 20px; font-weight: bold; color: #2c5aa0; display: flex; justify-content: space-between;"><span>TOTALE:</span><span id="totale">€ 0.00</span></div>
+            </div>
+        </div>
+    `;
+}
+
+function createSavedTab() {
+    document.getElementById('saved').innerHTML = `
+        <h2 style="color: #2c5aa0; margin-bottom: 20px;">💾 Preventivi Salvati</h2>
+        <div id="savedQuotes" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            <div style="text-align: center; padding: 40px; color: #666; grid-column: 1/-1;">
+                <h3>Nessun preventivo salvato</h3>
+                <p>Crea il tuo primo preventivo nella sezione "Nuovo Preventivo"</p>
+            </div>
+        </div>
+    `;
+}
+
+function createAnalyticsTab() {
+    document.getElementById('analytics').innerHTML = `
+        <h2 style="color: #2c5aa0; margin-bottom: 20px;">📊 Analytics & Statistiche</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+            <div style="background: white; padding: 20px; border-radius: 15px; text-align: center;">
+                <h3 style="color: #2c5aa0; margin-bottom: 10px;">Database</h3>
+                <div style="font-size: 36px; font-weight: bold; color: #4CAF50;">${Object.keys(equipmentDatabase).length}</div>
+                <div>Categorie attive</div>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 15px; text-align: center;">
+                <h3 style="color: #2c5aa0; margin-bottom: 10px;">Preventivi</h3>
+                <div style="font-size: 36px; font-weight: bold; color: #FF9800;">${savedQuotes.length}</div>
+                <div>Preventivi salvati</div>
+            </div>
+        </div>
+    `;
+}
+
+function addEquipmentRow() {
+    if (Object.keys(equipmentDatabase).length === 0) {
+        showNotification('⚠️ Carica prima il database', 'warning');
+        return;
+    }
+    rowCounter++;
+    const tbody = document.getElementById('equipmentRows');
+    const row = document.createElement('tr');
+    row.id = `row-${rowCounter}`;
+    row.style.background = '#f8f9ff';
+    row.innerHTML = `
+        <td style="padding: 10px;">
+            <select onchange="updateEquipmentOptions(${rowCounter})" id="category-${rowCounter}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Seleziona categoria...</option>
+                ${Object.keys(equipmentDatabase).map(cat => `<option value="${cat}">${cat}</option>`).join('')}
+            </select>
+        </td>
+        <td style="padding: 10px;">
+            <select onchange="updateRowData(${rowCounter})" id="equipment-${rowCounter}" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" disabled>
+                <option value="">Prima seleziona categoria</option>
+            </select>
+        </td>
+        <td style="padding: 10px;">
+            <input type="number" value="1" min="1" onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" style="width: 60px; padding: 8px; text-align: center; border: 1px solid #ddd; border-radius: 4px;">
+        </td>
+        <td style="padding: 10px; text-align: right; font-weight: bold; color: #2e7d32;" id="price-${rowCounter}">€ 0.00</td>
+        <td style="padding: 10px; text-align: right; font-weight: bold; color: #2e7d32;" id="total-${rowCounter}">€ 0.00</td>
+        <td style="padding: 10px;">
+            <button onclick="removeRow(${rowCounter})" style="background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">✕</button>
+        </td>
+    `;
+    tbody.appendChild(row);
+}
+
+function updateEquipmentOptions(rowId) {
+    const categorySelect = document.getElementById(`category-${rowId}`);
+    const equipmentSelect = document.getElementById(`equipment-${rowId}`);
+    const category = categorySelect.value;
+    equipmentSelect.innerHTML = '<option value="">Seleziona attrezzatura...</option>';
+    if (category && equipmentDatabase[category]) {
+        equipmentSelect.disabled = false;
+        Object.keys(equipmentDatabase[category]).forEach(equipment => {
+            const option = document.createElement('option');
+            option.value = equipment;
+            option.textContent = equipment;
+            equipmentSelect.appendChild(option);
+        });
+    } else {
+        equipmentSelect.disabled = true;
+    }
+    document.getElementById(`price-${rowId}`).textContent = '€ 0.00';
+    document.getElementById(`total-${rowId}`).textContent = '€ 0.00';
+    updateTotals();
+}
+
+function updateRowData(rowId) {
+    const categorySelect = document.getElementById(`category-${rowId}`);
+    const equipmentSelect = document.getElementById(`equipment-${rowId}`);
+    const category = categorySelect.value;
+    const equipment = equipmentSelect.value;
+    if (category && equipment && equipmentDatabase[category][equipment]) {
+        const data = equipmentDatabase[category][equipment];
+        const duration = parseInt(document.getElementById('durata').value);
+        const price = calculatePrice(data.price1, data.price3, data.price7, duration);
+        document.getElementById(`price-${rowId}`).textContent = `€ ${price.toFixed(2)}`;
+        updateRowTotal(rowId);
+    }
+}
+
+function calculatePrice(price1, price3, price7, duration) {
+    if (duration === 1) return price1;
+    if (duration === 2) return price1 * 2;
+    if (duration === 3) return price3;
+    if (duration === 4) return price3 + price1;
+    if (duration === 5) return price7;
+    if (duration === 6) return price7 + price1;
+    if (duration === 7) return price7 + (price1 * 2);
+    if (duration === 8) return price7 + price3;
+    if (duration === 9) return price7 + price3 + price1;
+    if (duration >= 10) return price7 * 2;
+    return price1;
+}
+
+function updateRowTotal(rowId) {
+    const priceText = document.getElementById(`price-${rowId}`).textContent;
+    const quantity = parseInt(document.getElementById(`qty-${rowId}`).value) || 0;
+    const price = parseFloat(priceText.replace('€ ', '')) || 0;
+    const total = price * quantity;
+    document.getElementById(`total-${rowId}`).textContent = `€ ${total.toFixed(2)}`;
+    updateTotals();
+}
+
+function updateAllPrices() {
+    const rows = document.querySelectorAll('[id^="row-"]');
+    rows.forEach(row => {
+        const rowId = row.id.split('-')[1];
+        updateRowData(rowId);
+    });
+}
+
+function updateTotals() {
+    const totalCells = document.querySelectorAll('[id^="total-"]');
+    let subtotal = 0;
+    totalCells.forEach(cell => {
+        const value = parseFloat(cell.textContent.replace('€ ', '')) || 0;
+        subtotal += value;
+    });
+    const sconto = 0; // Placeholder
+    const imponibile = subtotal - sconto;
+    const iva = imponibile * 0.22;
+    const totale = imponibile + iva;
+    
+    document.getElementById('subtotale').textContent = `€ ${subtotal.toFixed(2)}`;
+    document.getElementById('sconto-amount').textContent = `€ ${sconto.toFixed(2)}`;
+    document.getElementById('iva').textContent = `€ ${iva.toFixed(2)}`;
+    document.getElementById('totale').textContent = `€ ${totale.toFixed(2)}`;
+}
+
+function removeRow(rowId) {
+    const row = document.getElementById(`row-${rowId}`);
+    if (row) {
+        row.remove();
+        updateTotals();
+    }
+}
+
+function saveQuote() {
+    const quoteName = document.getElementById('quoteName').value;
+    if (!quoteName) {
+        showNotification('❌ Inserisci un nome per il preventivo!', 'error');
+        return;
+    }
+    const quote = {
+        id: Date.now(),
+        name: quoteName,
+        cliente: document.getElementById('cliente').value,
+        carico: document.getElementById('carico').value,
+        scarico: document.getElementById('scarico').value,
+        durata: document.getElementById('durata').value,
+        equipment: [],
+        createdAt: new Date().toLocaleString('it-IT'),
+        total: parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0
+    };
+    document.querySelectorAll('[id^="row-"]').forEach(row => {
+        const rowId = row.id.split('-')[1];
+        const category = document.getElementById(`category-${rowId}`)?.value;
+        const equipment = document.getElementById(`equipment-${rowId}`)?.value;
+        const quantity = document.getElementById(`qty-${rowId}`)?.value;
+        if (category && equipment) {
+            quote.equipment.push({category, equipment, quantity: parseInt(quantity)});
+        }
+    });
+    savedQuotes.push(quote);
+    showNotification(`✅ Preventivo "${quoteName}" salvato!`, 'success');
+}
+
+function generatePDF() {
+    const quoteName = document.getElementById('quoteName').value || 'Preventivo';
+    const cliente = document.getElementById('cliente').value || 'Cliente';
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(20);
+        doc.setTextColor(44, 90, 160);
+        doc.text('HUBRIS PICTURES S.R.L.', 20, 20);
+        doc.setFontSize(16);
+        doc.text('PREVENTIVO', 20, 35);
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Cliente: ${cliente}`, 20, 50);
+        doc.text(`Data Carico: ${document.getElementById('carico').value}`, 20, 60);
+        doc.text(`Data Scarico: ${document.getElementById('scarico').value}`, 20, 70);
+        doc.text(`Durata: ${document.getElementById('durata').value} giorni`, 20, 80);
+        
+        const tableData = [];
+        document.querySelectorAll('[id^="row-"]').forEach(row => {
+            const rowId = row.id.split('-')[1];
+            const category = document.getElementById(`category-${rowId}`)?.value;
+            const equipment = document.getElementById(`equipment-${rowId}`)?.value;
+            const quantity = document.getElementById(`qty-${rowId}`)?.value;
+            const price = document.getElementById(`price-${rowId}`)?.textContent;
+            const total = document.getElementById(`total-${rowId}`)?.textContent;
+            if (category && equipment) {
+                tableData.push([equipment, quantity, price, total]);
+            }
+        });
+        
+        if (tableData.length > 0) {
+            doc.autoTable({
+                head: [['Attrezzatura', 'Quantità', 'Prezzo Unit.', 'Totale']],
+                body: tableData,
+                startY: 90,
+                theme: 'grid',
+                headStyles: { fillColor: [44, 90, 160] }
+            });
+        }
+        
+        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 110;
+        doc.text(`Subtotale: ${document.getElementById('subtotale').textContent}`, 130, finalY);
+        doc.text(`IVA: ${document.getElementById('iva').textContent}`, 130, finalY + 10);
+        doc.setFontSize(14);
+        doc.setTextColor(44, 90, 160);
+        doc.text(`TOTALE: ${document.getElementById('totale').textContent}`, 130, finalY + 25);
+        
+        doc.save(`${quoteName.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+        showNotification('✅ PDF generato con successo!', 'success');
+    } catch (error) {
+        showNotification('❌ Errore nella generazione del PDF', 'error');
+    }
 }
 
 function updateCategoryFilter() {
@@ -269,15 +554,34 @@ function updateDbStats() {
     document.getElementById('dbStats').textContent = totalCategories + ' categorie, ' + totalItems + ' attrezzature';
 }
 
-// TAB MANAGEMENT
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-    document.getElementById(tabName).classList.add('active');
-    event.target.classList.add('active');
+function filterDatabase() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#databaseBody tr');
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
 }
 
-// CONFIGURATION MODAL
+function filterByCategory() {
+    const selectedCategory = document.getElementById('categoryFilter').value;
+    const rows = document.querySelectorAll('#databaseBody tr');
+    if (!selectedCategory) {
+        rows.forEach(row => row.style.display = '');
+        return;
+    }
+    let showNextItems = false;
+    rows.forEach(row => {
+        if (row.style.background && row.style.background.includes('linear-gradient')) {
+            const categoryText = row.textContent.trim().replace('📁 ', '');
+            showNextItems = (categoryText === selectedCategory);
+            row.style.display = showNextItems ? '' : 'none';
+        } else {
+            row.style.display = showNextItems ? '' : 'none';
+        }
+    });
+}
+
 function showConfigModal() {
     document.getElementById('apiKeyInput').value = CONFIG.API_KEY;
     document.getElementById('sheetsIdInput').value = CONFIG.SHEETS_ID;
@@ -300,35 +604,6 @@ function saveConfig() {
     closeConfigModal();
     showNotification('⚙️ Configurazione salvata. Connessione in corso...', 'info');
     setTimeout(() => initializeGoogleAPI(), 1000);
-}
-
-// UTILITY FUNCTIONS
-function filterDatabase() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const rows = document.querySelectorAll('#databaseBody tr');
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
-    });
-}
-
-function filterByCategory() {
-    const selectedCategory = document.getElementById('categoryFilter').value;
-    const rows = document.querySelectorAll('#databaseBody tr');
-    if (!selectedCategory) {
-        rows.forEach(row => row.style.display = '');
-        return;
-    }
-    let showNextItems = false;
-    rows.forEach(row => {
-        if (row.style.background.includes('linear-gradient')) {
-            const categoryText = row.textContent.trim().replace('📁 ', '');
-            showNextItems = (categoryText === selectedCategory);
-            row.style.display = showNextItems ? '' : 'none';
-        } else {
-            row.style.display = showNextItems ? '' : 'none';
-        }
-    });
 }
 
 function syncDatabase() {
@@ -354,12 +629,10 @@ function showNotification(message, type) {
     setTimeout(() => notification.remove(), 5000);
 }
 
-// PLACEHOLDER FUNCTIONS
 function addNewEquipment() {
     showNotification('🔧 Funzione in sviluppo', 'info');
 }
 
-// INITIALIZATION
 window.addEventListener('load', function() {
     updateConnectionStatus('offline', 'Configurazione richiesta');
     if (CONFIG.API_KEY && CONFIG.SHEETS_ID) {
