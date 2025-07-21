@@ -8,8 +8,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Trebuchet+MS&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        body { font-family: 'Trebuchet MS', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
         .navbar { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 15px 0; box-shadow: 0 2px 20px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
         .nav-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
         .logo { font-size: 24px; font-weight: bold; color: #2c5aa0; }
@@ -95,7 +96,6 @@
         </div>
     </div>
 </nav>
-
 <div class="container">
     <div class="tabs">
         <button class="tab active" onclick="showTab('database')">🗄️ Database</button>
@@ -184,6 +184,10 @@
                 <input type="text" class="form-input" id="cliente" placeholder="Nome del cliente">
             </div>
             <div class="form-group">
+                <label class="form-label">P.IVA Cliente</label>
+                <input type="text" class="form-input" id="clientePiva" placeholder="Partita IVA del cliente">
+            </div>
+            <div class="form-group">
                 <label class="form-label">Contatti</label>
                 <input type="text" class="form-input" id="contatti" placeholder="Telefono/Email">
             </div>
@@ -196,7 +200,7 @@
                 <input type="date" class="form-input" id="scarico">
             </div>
         </div>
-        <div class="form-grid" style="grid-template-columns: auto auto auto 1fr auto;">
+        <div class="form-grid" style="grid-template-columns: auto auto auto 1fr auto auto;">
             <div class="form-group">
                 <label class="form-label">Durata (giorni)</label>
                 <input type="number" class="form-input" id="durata" value="1" min="1" max="30" onchange="updateAllPrices()" style="width: 100px;">
@@ -215,10 +219,11 @@
             </div>
             <div></div>
             <button class="btn btn-primary" onclick="addEquipmentRow()">+ Attrezzatura</button>
+            <button class="btn btn-info" onclick="addServiceRow()">+ Servizio</button>
         </div>
         <div class="equipment-section">
             <div class="equipment-header">
-                <h3>Lista Attrezzature</h3>
+                <h3>Lista Attrezzature e Servizi</h3>
                 <div>
                     <button class="btn btn-info" onclick="generatePDF()">📄 PDF</button>
                     <button class="btn btn-warning" onclick="generateInsurance()">🛡️ Assicurazione</button>
@@ -229,7 +234,7 @@
                 <thead>
                     <tr>
                         <th style="width: 180px;">Categoria</th>
-                        <th style="width: 220px;">Attrezzatura</th>
+                        <th style="width: 220px;">Attrezzatura/Servizio</th>
                         <th style="width: 80px;">Qtà</th>
                         <th style="width: 120px;">Prezzo Unit.</th>
                         <th style="width: 120px;">Totale</th>
@@ -308,12 +313,11 @@
         </div>
     </div>
 </div>
-
 <script>
-    // CONFIGURAZIONE GLOBALE
+    // CONFIGURAZIONE GLOBALE - AGGIORNATA CON NUOVO SHEETS ID
 let CONFIG = {
     API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
-    SHEETS_ID: '1SLA0PwsRnQ0ow6TuUZPsZ0d9tcUqpJKR_IFMSKI9g1s',
+    SHEETS_ID: '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc',
     DATABASE_RANGE: 'Database!A:G',
     QUOTES_RANGE: 'Preventivi_Salvati!A:Z'
 };
@@ -376,7 +380,21 @@ async function loadDatabaseFromSheets() {
 }
 
 async function loadQuotesFromSheets() {
-    if (!gapi_loaded || !isConnected) return;
+    if (!gapi_loaded || !isConnected) {
+        // Carica da localStorage se disponibile
+        const localQuotes = localStorage.getItem('hubris_quotes');
+        if (localQuotes) {
+            try {
+                savedQuotes = JSON.parse(localQuotes);
+                renderSavedQuotes();
+                updateAnalytics();
+                showNotification('📂 Preventivi caricati da memoria locale', 'info');
+            } catch (e) {
+                savedQuotes = [];
+            }
+        }
+        return;
+    }
     try {
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: CONFIG.SHEETS_ID,
@@ -385,6 +403,8 @@ async function loadQuotesFromSheets() {
         const values = response.result.values;
         if (values && values.length > 1) {
             savedQuotes = parseQuotesData(values);
+            // Salva anche in localStorage come backup
+            localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
             renderSavedQuotes();
             updateAnalytics();
         }
@@ -395,26 +415,29 @@ async function loadQuotesFromSheets() {
 }
 
 async function saveQuoteToSheets(quote) {
+    // Salva sempre in localStorage
+    localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
+    
     if (!gapi_loaded || !isConnected) {
-        showNotification('⚠️ Salvataggio locale - sincronizzazione quando connesso', 'warning');
+        showNotification('💾 Preventivo salvato localmente - sincronizzazione quando connesso', 'warning');
         return;
     }
     try {
         const quoteRow = [
-            quote.id, quote.name, quote.cliente, quote.contatti, quote.carico, quote.scarico,
-            quote.durata, quote.sconto, quote.total, quote.status, quote.createdAt,
-            JSON.stringify(quote.equipment)
+            quote.id, quote.name, quote.cliente, quote.clientePiva || '', quote.contatti, 
+            quote.carico, quote.scarico, quote.durata, quote.sconto, quote.total, 
+            quote.status, quote.createdAt, JSON.stringify(quote.equipment)
         ];
         await gapi.client.sheets.spreadsheets.values.append({
             spreadsheetId: CONFIG.SHEETS_ID,
-            range: 'Preventivi_Salvati!A:L',
+            range: 'Preventivi_Salvati!A:M',
             valueInputOption: 'RAW',
             resource: { values: [quoteRow] }
         });
         showNotification('✅ Preventivo salvato su Google Sheets', 'success');
     } catch (error) {
         console.error('Errore salvataggio:', error);
-        showNotification('❌ Errore salvataggio su Google Sheets: ' + error.message, 'error');
+        showNotification('❌ Errore salvataggio su Google Sheets, salvato localmente', 'error');
     }
 }
 
@@ -456,24 +479,60 @@ function parseQuotesData(values) {
     const quotes = [];
     for (let i = 1; i < values.length; i++) {
         const row = values[i];
-        if (row && row.length >= 11) {
+        if (row && row.length >= 12) {
             quotes.push({
                 id: parseInt(row[0]) || Date.now(),
                 name: row[1] || '',
                 cliente: row[2] || '',
-                contatti: row[3] || '',
-                carico: row[4] || '',
-                scarico: row[5] || '',
-                durata: parseInt(row[6]) || 1,
-                sconto: parseFloat(row[7]) || 0,
-                total: parseFloat(row[8]) || 0,
-                status: row[9] || 'draft',
-                createdAt: row[10] || '',
-                equipment: JSON.parse(row[11] || '[]')
+                clientePiva: row[3] || '',
+                contatti: row[4] || '',
+                carico: row[5] || '',
+                scarico: row[6] || '',
+                durata: parseInt(row[7]) || 1,
+                sconto: parseFloat(row[8]) || 0,
+                total: parseFloat(row[9]) || 0,
+                status: row[10] || 'draft',
+                createdAt: row[11] || '',
+                equipment: JSON.parse(row[12] || '[]')
             });
         }
     }
     return quotes;
+}
+
+// NUOVA FUNZIONE PER AGGIUNGERE SERVIZI
+function addServiceRow() {
+    rowCounter++;
+    const tbody = document.getElementById('equipmentRows');
+    const row = document.createElement('tr');
+    row.className = 'equipment-row service-row';
+    row.id = 'row-' + rowCounter;
+    row.style.background = '#fff3e0';
+    row.innerHTML = `
+        <td style="color: #f57c00; font-weight: bold;">🔧 SERVIZIO</td>
+        <td>
+            <input type="text" class="form-input" placeholder="Nome del servizio (es. Trasporto)" 
+                   id="service-name-${rowCounter}" style="width: 100%; margin-bottom: 5px;">
+            <textarea class="form-input" placeholder="Note servizio..." 
+                      id="service-notes-${rowCounter}" style="width: 100%; height: 60px; resize: vertical;"></textarea>
+        </td>
+        <td>
+            <input type="number" class="form-input" value="1" min="1" 
+                   onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" 
+                   style="width: 100%; text-align: center;">
+        </td>
+        <td>
+            <input type="number" class="form-input" placeholder="0.00" min="0" step="0.01" 
+                   onchange="updateRowTotal(${rowCounter})" id="service-price-${rowCounter}" 
+                   style="width: 100%; text-align: right;">
+        </td>
+        <td style="text-align: right; font-weight: bold; color: #f57c00;" id="total-${rowCounter}">€ 0.00</td>
+        <td>
+            <button class="btn btn-danger" onclick="removeRow(${rowCounter})" 
+                    style="padding: 6px 12px; font-size: 12px;">✕</button>
+        </td>
+    `;
+    tbody.appendChild(row);
 }
 
 // UI RENDERING
@@ -518,8 +577,7 @@ function updateDbStats() {
     });
     document.getElementById('dbStats').textContent = totalCategories + ' categorie, ' + totalItems + ' attrezzature';
 }
-
-function renderSavedQuotes() {
+    function renderSavedQuotes() {
     const container = document.getElementById('savedQuotes');
     container.innerHTML = '';
     if (savedQuotes.length === 0) {
@@ -529,11 +587,12 @@ function renderSavedQuotes() {
     savedQuotes.forEach(quote => {
         const div = document.createElement('div');
         div.className = 'quote-card';
-        div.innerHTML = '<div class="quote-title">' + quote.name + '</div><div class="quote-meta"><strong>Cliente:</strong> ' + quote.cliente + '<br><strong>Durata:</strong> ' + quote.durata + ' giorni<br><strong>Totale:</strong> € ' + quote.total.toFixed(2) + '<br><strong>Creato:</strong> ' + quote.createdAt + '</div><div style="margin-top: 15px;"><span class="status-badge status-' + quote.status + '">' + (quote.status === 'draft' ? 'Bozza' : quote.status === 'sent' ? 'Inviato' : 'Confermato') + '</span><div style="margin-top: 10px;"><button class="btn btn-primary" onclick="loadQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📂</button><button class="btn btn-info" onclick="generateQuotePDF(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button><button class="btn btn-warning" onclick="duplicateQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button><button class="btn btn-danger" onclick="deleteQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🗑️</button></div></div>';
+        div.innerHTML = '<div class="quote-title">' + quote.name + '</div><div class="quote-meta"><strong>Cliente:</strong> ' + quote.cliente + (quote.clientePiva ? '<br><strong>P.IVA:</strong> ' + quote.clientePiva : '') + '<br><strong>Durata:</strong> ' + quote.durata + ' giorni<br><strong>Totale:</strong> € ' + quote.total.toFixed(2) + '<br><strong>Creato:</strong> ' + quote.createdAt + '</div><div style="margin-top: 15px;"><span class="status-badge status-' + quote.status + '">' + (quote.status === 'draft' ? 'Bozza' : quote.status === 'sent' ? 'Inviato' : 'Confermato') + '</span><div style="margin-top: 10px;"><button class="btn btn-primary" onclick="loadQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📂</button><button class="btn btn-info" onclick="generateQuotePDF(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button><button class="btn btn-warning" onclick="duplicateQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button><button class="btn btn-danger" onclick="deleteQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🗑️</button></div></div>';
         container.appendChild(div);
     });
 }
-    // TAB MANAGEMENT
+
+// TAB MANAGEMENT
 function showTab(tabName) {
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
@@ -645,9 +704,18 @@ function calculatePrice(price1, price3, price7, duration) {
 }
 
 function updateRowTotal(rowId) {
-    const priceText = document.getElementById('price-' + rowId).textContent;
-    const quantity = parseInt(document.getElementById('qty-' + rowId).value) || 0;
-    const price = parseFloat(priceText.replace('€ ', '')) || 0;
+    const row = document.getElementById('row-' + rowId);
+    let price = 0;
+    let quantity = parseInt(document.getElementById('qty-' + rowId).value) || 0;
+    
+    // Check if it's a service row
+    if (row.classList.contains('service-row')) {
+        price = parseFloat(document.getElementById('service-price-' + rowId).value) || 0;
+    } else {
+        const priceText = document.getElementById('price-' + rowId).textContent;
+        price = parseFloat(priceText.replace('€ ', '')) || 0;
+    }
+    
     const total = price * quantity;
     document.getElementById('total-' + rowId).textContent = '€ ' + total.toFixed(2);
     updateTotals();
@@ -657,7 +725,9 @@ function updateAllPrices() {
     const rows = document.querySelectorAll('[id^="row-"]');
     rows.forEach(row => {
         const rowId = row.id.split('-')[1];
-        updateRowData(rowId);
+        if (!row.classList.contains('service-row')) {
+            updateRowData(rowId);
+        }
     });
 }
 
@@ -699,6 +769,7 @@ function saveQuote() {
         id: Date.now(),
         name: quoteName,
         cliente: document.getElementById('cliente').value,
+        clientePiva: document.getElementById('clientePiva').value,
         contatti: document.getElementById('contatti').value,
         carico: document.getElementById('carico').value,
         scarico: document.getElementById('scarico').value,
@@ -709,17 +780,38 @@ function saveQuote() {
         status: 'draft',
         total: parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0
     };
+    
     document.querySelectorAll('[id^="row-"]').forEach(row => {
         const rowId = row.id.split('-')[1];
-        const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : '';
-        const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : '';
         const quantity = document.getElementById('qty-' + rowId) ? document.getElementById('qty-' + rowId).value : '';
-        if (category && equipment) {
-            quote.equipment.push({
-                category, equipment, quantity: parseInt(quantity)
-            });
+        
+        if (row.classList.contains('service-row')) {
+            const serviceName = document.getElementById('service-name-' + rowId) ? document.getElementById('service-name-' + rowId).value : '';
+            const serviceNotes = document.getElementById('service-notes-' + rowId) ? document.getElementById('service-notes-' + rowId).value : '';
+            const servicePrice = document.getElementById('service-price-' + rowId) ? document.getElementById('service-price-' + rowId).value : '';
+            
+            if (serviceName) {
+                quote.equipment.push({
+                    category: 'SERVIZIO',
+                    equipment: serviceName,
+                    quantity: parseInt(quantity),
+                    notes: serviceNotes,
+                    price: parseFloat(servicePrice),
+                    isService: true
+                });
+            }
+        } else {
+            const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : '';
+            const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : '';
+            
+            if (category && equipment) {
+                quote.equipment.push({
+                    category, equipment, quantity: parseInt(quantity), isService: false
+                });
+            }
         }
     });
+    
     savedQuotes.push(quote);
     saveQuoteToSheets(quote);
     renderSavedQuotes();
@@ -732,6 +824,7 @@ function loadQuoteById(quoteId) {
     if (!quote) return;
     document.getElementById('quoteName').value = quote.name;
     document.getElementById('cliente').value = quote.cliente;
+    document.getElementById('clientePiva').value = quote.clientePiva || '';
     document.getElementById('contatti').value = quote.contatti;
     document.getElementById('carico').value = quote.carico;
     document.getElementById('scarico').value = quote.scarico;
@@ -739,17 +832,28 @@ function loadQuoteById(quoteId) {
     document.getElementById('sconto').value = quote.sconto;
     document.getElementById('equipmentRows').innerHTML = '';
     rowCounter = 0;
+    
     quote.equipment.forEach(item => {
-        addEquipmentRow();
-        document.getElementById('category-' + rowCounter).value = item.category;
-        updateEquipmentOptions(rowCounter);
-        setTimeout(() => {
-            document.getElementById('equipment-' + rowCounter).value = item.equipment;
-            updateRowData(rowCounter);
+        if (item.isService) {
+            addServiceRow();
+            document.getElementById('service-name-' + rowCounter).value = item.equipment;
+            document.getElementById('service-notes-' + rowCounter).value = item.notes || '';
+            document.getElementById('service-price-' + rowCounter).value = item.price || '';
             document.getElementById('qty-' + rowCounter).value = item.quantity;
             updateRowTotal(rowCounter);
-        }, 100);
+        } else {
+            addEquipmentRow();
+            document.getElementById('category-' + rowCounter).value = item.category;
+            updateEquipmentOptions(rowCounter);
+            setTimeout(() => {
+                document.getElementById('equipment-' + rowCounter).value = item.equipment;
+                updateRowData(rowCounter);
+                document.getElementById('qty-' + rowCounter).value = item.quantity;
+                updateRowTotal(rowCounter);
+            }, 100);
+        }
     });
+    
     showTab('quotes');
     document.querySelector('[onclick="showTab(\'quotes\')"]').classList.add('active');
     showNotification('✅ Preventivo "' + quote.name + '" caricato!', 'success');
@@ -768,6 +872,7 @@ function deleteQuote(quoteId) {
     if (!quote) return;
     if (confirm('Sei sicuro di voler eliminare il preventivo "' + quote.name + '"?')) {
         savedQuotes = savedQuotes.filter(q => q.id !== quoteId);
+        localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
         renderSavedQuotes();
         updateAnalytics();
         showNotification('🗑️ Preventivo eliminato', 'info');
@@ -778,6 +883,7 @@ function resetQuote() {
     if (confirm('Sei sicuro di voler cancellare tutto il preventivo?')) {
         document.getElementById('equipmentRows').innerHTML = '';
         document.getElementById('cliente').value = '';
+        document.getElementById('clientePiva').value = '';
         document.getElementById('contatti').value = '';
         document.getElementById('carico').value = '';
         document.getElementById('scarico').value = '';
@@ -786,272 +892,6 @@ function resetQuote() {
         document.getElementById('quoteName').value = '';
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
-    }
-}
-
-// PDF GENERATION
-function generatePDF() {
-    const quoteName = document.getElementById('quoteName').value || 'Preventivo';
-    const cliente = document.getElementById('cliente').value || 'Cliente';
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.setTextColor(44, 90, 160);
-        doc.text('HUBRIS PICTURES S.R.L.', 20, 20);
-        doc.setFontSize(16);
-        doc.text('PREVENTIVO', 20, 35);
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Cliente: ' + cliente, 20, 50);
-        doc.text('Contatti: ' + document.getElementById('contatti').value, 20, 60);
-        doc.text('Data Carico: ' + document.getElementById('carico').value, 20, 70);
-        doc.text('Data Scarico: ' + document.getElementById('scarico').value, 20, 80);
-        doc.text('Durata: ' + document.getElementById('durata').value + ' giorni', 20, 90);
-        const tableData = [];
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
-            const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : '';
-            const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : '';
-            const quantity = document.getElementById('qty-' + rowId) ? document.getElementById('qty-' + rowId).value : '';
-            const price = document.getElementById('price-' + rowId) ? document.getElementById('price-' + rowId).textContent : '';
-            const total = document.getElementById('total-' + rowId) ? document.getElementById('total-' + rowId).textContent : '';
-            if (category && equipment) {
-                tableData.push([equipment, quantity, price, total]);
-            }
-        });
-        if (tableData.length > 0) {
-            doc.autoTable({
-                head: [['Attrezzatura', 'Quantità', 'Prezzo Unit.', 'Totale']],
-                body: tableData,
-                startY: 100,
-                theme: 'grid',
-                headStyles: { fillColor: [44, 90, 160] }
-            });
-        }
-        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 120;
-        doc.text('Subtotale: ' + document.getElementById('subtotale').textContent, 130, finalY);
-        doc.text('Sconto: ' + document.getElementById('sconto-amount').textContent, 130, finalY + 10);
-        doc.text('Imponibile: ' + document.getElementById('imponibile').textContent, 130, finalY + 20);
-        doc.text('IVA: ' + document.getElementById('iva').textContent, 130, finalY + 30);
-        doc.setFontSize(14);
-        doc.setTextColor(44, 90, 160);
-        doc.text('TOTALE: ' + document.getElementById('totale').textContent, 130, finalY + 45);
-        doc.save(quoteName.replace(/[^a-z0-9]/gi, '_') + '.pdf');
-        showNotification('✅ PDF generato con successo!', 'success');
-    } catch (error) {
-        console.error('Errore generazione PDF:', error);
-        showNotification('❌ Errore nella generazione del PDF', 'error');
-    }
-}
-
-function generateQuotePDF(quoteId) {
-    const quote = savedQuotes.find(q => q.id === quoteId);
-    if (!quote) return;
-    loadQuoteById(quoteId);
-    setTimeout(() => {
-        generatePDF();
-    }, 500);
-}
-
-function generateInsurance() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.setTextColor(44, 90, 160);
-        doc.text('HUBRIS PICTURES S.R.L.', 20, 20);
-        doc.setFontSize(16);
-        doc.text('VALORI ASSICURATIVI', 20, 35);
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Cliente: ' + document.getElementById('cliente').value, 20, 50);
-        doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 20, 60);
-        const tableData = [];
-        let totalInsurance = 0;
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
-            const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : '';
-            const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : '';
-            const quantity = parseInt(document.getElementById('qty-' + rowId) ? document.getElementById('qty-' + rowId).value : '1') || 1;
-            if (category && equipment && equipmentDatabase[category][equipment]) {
-                const insurance = equipmentDatabase[category][equipment].insurance;
-                const totalValue = insurance * quantity;
-                totalInsurance += totalValue;
-                if (insurance > 0) {
-                    tableData.push([
-                        equipment,
-                        quantity.toString(),
-                        '€ ' + insurance.toLocaleString(),
-                        '€ ' + totalValue.toLocaleString()
-                    ]);
-                }
-            }
-        });
-        if (tableData.length > 0) {
-            doc.autoTable({
-                head: [['Attrezzatura', 'Quantità', 'Valore Unit.', 'Valore Totale']],
-                body: tableData,
-                startY: 80,
-                theme: 'grid',
-                headStyles: { fillColor: [44, 90, 160] }
-            });
-            const finalY = doc.lastAutoTable.finalY + 20;
-            doc.setFontSize(14);
-            doc.setTextColor(44, 90, 160);
-            doc.text('VALORE TOTALE DA ASSICURARE: € ' + totalInsurance.toLocaleString(), 20, finalY);
-        } else {
-            doc.text('Nessuna attrezzatura con valore assicurativo', 20, 80);
-        }
-        doc.save('Valori_Assicurativi.pdf');
-        showNotification('✅ Documento assicurativo generato!', 'success');
-    } catch (error) {
-        console.error('Errore generazione assicurazione:', error);
-        showNotification('❌ Errore nella generazione del documento', 'error');
-    }
-}
-
-function generateNoPricesQuote() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.setTextColor(44, 90, 160);
-        doc.text('HUBRIS PICTURES S.R.L.', 20, 20);
-        doc.setFontSize(16);
-        doc.text('PREVENTIVO', 20, 35);
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Cliente: ' + document.getElementById('cliente').value, 20, 50);
-        doc.text('Contatti: ' + document.getElementById('contatti').value, 20, 60);
-        doc.text('Data Carico: ' + document.getElementById('carico').value, 20, 70);
-        doc.text('Data Scarico: ' + document.getElementById('scarico').value, 20, 80);
-        const tableData = [];
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
-            const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : '';
-            const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : '';
-            const quantity = document.getElementById('qty-' + rowId) ? document.getElementById('qty-' + rowId).value : '';
-            if (category && equipment && equipmentDatabase[category][equipment]) {
-                const kit = equipmentDatabase[category][equipment].kit;
-                tableData.push([equipment, quantity, kit || 'Kit standard']);
-            }
-        });
-        if (tableData.length > 0) {
-            doc.autoTable({
-                head: [['Attrezzatura', 'Quantità', 'Descrizione']],
-                body: tableData,
-                startY: 100,
-                theme: 'grid',
-                headStyles: { fillColor: [44, 90, 160] }
-            });
-        }
-        doc.save('Preventivo_Senza_Prezzi.pdf');
-        showNotification('✅ Preventivo senza prezzi generato!', 'success');
-    } catch (error) {
-        console.error('Errore generazione preventivo:', error);
-        showNotification('❌ Errore nella generazione del preventivo', 'error');
-    }
-}
-    // ANALYTICS
-function updateAnalytics() {
-    const thisMonth = savedQuotes.filter(q => {
-        const created = new Date(q.createdAt.split(', ')[0].split('/').reverse().join('-'));
-        const now = new Date();
-        return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
-    });
-    const totalRevenue = thisMonth.reduce((sum, q) => sum + q.total, 0);
-    const confirmedQuotes = savedQuotes.filter(q => q.status === 'confirmed').length;
-    const conversionRate = savedQuotes.length > 0 ? (confirmedQuotes / savedQuotes.length * 100) : 0;
-    document.getElementById('monthlyQuotes').textContent = thisMonth.length;
-    document.getElementById('estimatedRevenue').textContent = '€ ' + totalRevenue.toFixed(0);
-    document.getElementById('conversionRate').textContent = conversionRate.toFixed(1) + '%';
-    const equipmentCount = {};
-    savedQuotes.forEach(quote => {
-        quote.equipment.forEach(item => {
-            equipmentCount[item.equipment] = (equipmentCount[item.equipment] || 0) + parseInt(item.quantity);
-        });
-    });
-    const mostRequested = Object.keys(equipmentCount).reduce((a, b) => 
-        equipmentCount[a] > equipmentCount[b] ? a : b, 'N/A'
-    );
-    document.getElementById('topEquipment').textContent = mostRequested;
-}
-
-function generateAnalyticsReport() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.setTextColor(44, 90, 160);
-        doc.text('HUBRIS PICTURES - REPORT ANALYTICS', 20, 20);
-        doc.setFontSize(12);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Generato il: ' + new Date().toLocaleDateString('it-IT'), 20, 40);
-        const monthlyQuotes = document.getElementById('monthlyQuotes').textContent;
-        const estimatedRevenue = document.getElementById('estimatedRevenue').textContent;
-        const conversionRate = document.getElementById('conversionRate').textContent;
-        const topEquipment = document.getElementById('topEquipment').textContent;
-        doc.text('Preventivi questo mese: ' + monthlyQuotes, 20, 60);
-        doc.text('Fatturato stimato: ' + estimatedRevenue, 20, 70);
-        doc.text('Tasso di conversione: ' + conversionRate, 20, 80);
-        doc.text('Attrezzatura più richiesta: ' + topEquipment, 20, 90);
-        const recentQuotes = savedQuotes.slice(-10).reverse();
-        const tableData = recentQuotes.map(q => [
-            q.name,
-            q.cliente,
-            q.createdAt.split(',')[0],
-            '€ ' + q.total.toFixed(2),
-            q.status === 'draft' ? 'Bozza' : q.status === 'sent' ? 'Inviato' : 'Confermato'
-        ]);
-        if (tableData.length > 0) {
-            doc.autoTable({
-                head: [['Preventivo', 'Cliente', 'Data', 'Totale', 'Status']],
-                body: tableData,
-                startY: 110,
-                theme: 'grid',
-                headStyles: { fillColor: [44, 90, 160] }
-            });
-        }
-        doc.save('Analytics_Report.pdf');
-        showNotification('✅ Report analytics generato!', 'success');
-    } catch (error) {
-        console.error('Errore generazione report:', error);
-        showNotification('❌ Errore nella generazione del report', 'error');
-    }
-}
-
-function exportAllQuotes() {
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFontSize(20);
-        doc.setTextColor(44, 90, 160);
-        doc.text('HUBRIS PICTURES - EXPORT PREVENTIVI', 20, 20);
-        const tableData = savedQuotes.map(q => [
-            q.name,
-            q.cliente,
-            q.createdAt.split(',')[0],
-            q.durata + ' gg',
-            q.sconto + '%',
-            '€ ' + q.total.toFixed(2),
-            q.status === 'draft' ? 'Bozza' : q.status === 'sent' ? 'Inviato' : 'Confermato'
-        ]);
-        if (tableData.length > 0) {
-            doc.autoTable({
-                head: [['Nome', 'Cliente', 'Data', 'Durata', 'Sconto', 'Totale', 'Status']],
-                body: tableData,
-                startY: 40,
-                theme: 'grid',
-                headStyles: { fillColor: [44, 90, 160] },
-                styles: { fontSize: 8 }
-            });
-        }
-        doc.save('Export_Tutti_Preventivi.pdf');
-        showNotification('✅ Export completo generato!', 'success');
-    } catch (error) {
-        console.error('Errore export:', error);
-        showNotification('❌ Errore nell\'export', 'error');
     }
 }
 
@@ -1128,6 +968,33 @@ function showNotification(message, type) {
     }, 5000);
 }
 
+// ANALYTICS
+function updateAnalytics() {
+    const thisMonth = savedQuotes.filter(q => {
+        const created = new Date(q.createdAt.split(', ')[0].split('/').reverse().join('-'));
+        const now = new Date();
+        return created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear();
+    });
+    const totalRevenue = thisMonth.reduce((sum, q) => sum + q.total, 0);
+    const confirmedQuotes = savedQuotes.filter(q => q.status === 'confirmed').length;
+    const conversionRate = savedQuotes.length > 0 ? (confirmedQuotes / savedQuotes.length * 100) : 0;
+    document.getElementById('monthlyQuotes').textContent = thisMonth.length;
+    document.getElementById('estimatedRevenue').textContent = '€ ' + totalRevenue.toFixed(0);
+    document.getElementById('conversionRate').textContent = conversionRate.toFixed(1) + '%';
+    const equipmentCount = {};
+    savedQuotes.forEach(quote => {
+        quote.equipment.forEach(item => {
+            if (!item.isService) {
+                equipmentCount[item.equipment] = (equipmentCount[item.equipment] || 0) + parseInt(item.quantity);
+            }
+        });
+    });
+    const mostRequested = Object.keys(equipmentCount).reduce((a, b) => 
+        equipmentCount[a] > equipmentCount[b] ? a : b, 'N/A'
+    );
+    document.getElementById('topEquipment').textContent = mostRequested;
+}
+
 // PLACEHOLDER FUNCTIONS FOR FUTURE DEVELOPMENT
 function addNewEquipment() {
     showNotification('🔧 Funzione in sviluppo: Aggiungi nuova attrezzatura', 'info');
@@ -1159,7 +1026,13 @@ function duplicateQuote() {
 
 // INITIALIZATION
 window.addEventListener('load', function() {
-    // Check if configuration exists
+    // Load saved configuration
+    const savedApiKey = localStorage.getItem('hubris_api_key');
+    const savedSheetsId = localStorage.getItem('hubris_sheets_id');
+    
+    if (savedApiKey) CONFIG.API_KEY = savedApiKey;
+    if (savedSheetsId) CONFIG.SHEETS_ID = savedSheetsId;
+    
     if (CONFIG.API_KEY && CONFIG.SHEETS_ID) {
         initializeGoogleAPI();
     } else {
@@ -1167,13 +1040,16 @@ window.addEventListener('load', function() {
         showNotification('⚙️ Clicca su "Config" per configurare le API Google Sheets', 'warning');
     }
     
+    // Load quotes from localStorage immediately
+    loadQuotesFromSheets();
+    
     // Auto-sync every 5 minutes if connected
     setInterval(() => {
         if (isConnected) {
             loadQuotesFromSheets();
             updateSyncTime();
         }
-    }, 300000); // 5 minutes
+    }, 300000);
 });
 
 // Global error handler
