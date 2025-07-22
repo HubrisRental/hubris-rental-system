@@ -85,7 +85,8 @@
 <body>
     <nav class="navbar">
     <div class="nav-content">
-        <div class="logo">🎬 HUBRIS PICTURES S.R.L.</div>
+        <div class="logo" style="display: flex; align-items: center; gap: 10px;">
+    <svg width="35" height="35" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2
         <div class="connection-status">
             <span class="status-indicator" id="connectionStatus"></span>
             <span id="connectionText">Connecting...</span>
@@ -997,11 +998,24 @@ function generatePDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         
-        // HEADER CON LOGO E INFORMAZIONI AZIENDA
-        doc.setFontSize(24);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0);
-        doc.text('HUBRIS PICTURES S.R.L.', 105, 20, { align: 'center' });
+        // HEADER CON LOGO REALE
+const logoBase64 = 'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNDAiIGN5PSI0MCIgcj0iMzkiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNNTUgMjBMMzAgNDVMMzUgNTBMNjAgMjVMMzAgMzVMMzUgNDBMNjAgMTVMMzAgMjUiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0yNSA2MEM0MCA0NSAzNSA0MCAyNSA2MFoiIGZpbGw9ImdyYXkiLz4KPHN0YXIgY3g9IjIwIiBjeT0iMjAiIHI9IjMiIGZpbGw9ImJsYWNrIi8+Cjwvc3ZnPgo=';
+
+try {
+    doc.addImage(logoBase64, 'SVG', 15, 15, 20, 20);
+} catch (e) {
+    // Fallback se il logo non funziona
+    doc.setFillColor(44, 90, 160);
+    doc.circle(25, 25, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.text('HP', 25, 28, { align: 'center' });
+}
+
+doc.setFontSize(24);
+doc.setFont('helvetica', 'bold');
+doc.setTextColor(0, 0, 0);
+doc.text('HUBRIS PICTURES S.R.L.', 45, 28);
         
         // Informazioni azienda
         doc.setFontSize(10);
@@ -1395,11 +1409,94 @@ function updateAnalytics() {
 
 // PLACEHOLDER FUNCTIONS FOR FUTURE DEVELOPMENT
 function addNewEquipment() {
-    showNotification('🔧 Funzione in sviluppo: Aggiungi nuova attrezzatura', 'info');
+    const newName = prompt('Nome della nuova attrezzatura:');
+    if (!newName) return;
+    
+    const category = prompt('Categoria (lascia vuoto per creare nuova categoria):');
+    const price1 = parseFloat(prompt('Prezzo 1 giorno:') || '0');
+    const price3 = parseFloat(prompt('Prezzo 3 giorni:') || '0');
+    const price7 = parseFloat(prompt('Prezzo 1 settimana:') || '0');
+    const insurance = parseFloat(prompt('Valore assicurativo:') || '0');
+    const kit = prompt('Kit/Note (opzionale):') || '';
+    
+    if (!category) {
+        const newCategory = prompt('Nome nuova categoria:');
+        if (!newCategory) return;
+        
+        if (!equipmentDatabase[newCategory]) {
+            equipmentDatabase[newCategory] = {};
+        }
+        
+        equipmentDatabase[newCategory][newName] = {
+            price1, price3, price7, insurance, kit, notes: ''
+        };
+    } else if (equipmentDatabase[category]) {
+        equipmentDatabase[category][newName] = {
+            price1, price3, price7, insurance, kit, notes: ''
+        };
+    } else {
+        showNotification('❌ Categoria non trovata!', 'error');
+        return;
+    }
+    
+    // Refresh display
+    const processedData = [];
+    Object.keys(equipmentDatabase).forEach(cat => {
+        Object.keys(equipmentDatabase[cat]).forEach(item => {
+            const data = equipmentDatabase[cat][item];
+            processedData.push({
+                category: cat,
+                name: item,
+                ...data
+            });
+        });
+    });
+    
+    renderDatabase(processedData);
+    updateCategoryFilter();
+    updateDbStats();
+    showNotification('✅ Attrezzatura "' + newName + '" aggiunta!', 'success');
 }
 
 function editEquipment(category, name) {
-    showNotification('🔧 Funzione in sviluppo: Modifica ' + name + ' in ' + category, 'info');
+    if (!equipmentDatabase[category] || !equipmentDatabase[category][name]) {
+        showNotification('❌ Attrezzatura non trovata!', 'error');
+        return;
+    }
+    
+    const current = equipmentDatabase[category][name];
+    
+    const newPrice1 = parseFloat(prompt('Prezzo 1 giorno:', current.price1) || current.price1);
+    const newPrice3 = parseFloat(prompt('Prezzo 3 giorni:', current.price3) || current.price3);
+    const newPrice7 = parseFloat(prompt('Prezzo 1 settimana:', current.price7) || current.price7);
+    const newInsurance = parseFloat(prompt('Valore assicurativo:', current.insurance) || current.insurance);
+    const newKit = prompt('Kit/Note:', current.kit) || current.kit;
+    
+    // Update data
+    equipmentDatabase[category][name] = {
+        price1: newPrice1,
+        price3: newPrice3,
+        price7: newPrice7,
+        insurance: newInsurance,
+        kit: newKit,
+        notes: current.notes || ''
+    };
+    
+    // Refresh display
+    const processedData = [];
+    Object.keys(equipmentDatabase).forEach(cat => {
+        Object.keys(equipmentDatabase[cat]).forEach(item => {
+            const data = equipmentDatabase[cat][item];
+            processedData.push({
+                category: cat,
+                name: item,
+                ...data
+            });
+        });
+    });
+    
+    renderDatabase(processedData);
+    showNotification('✅ Attrezzatura "' + name + '" modificata!', 'success');
 }
 
 function loadQuote() {
