@@ -379,21 +379,29 @@ async function loadDatabaseFromSheets() {
 }
 
 async function loadQuotesFromSheets() {
-    if (!gapi_loaded || !isConnected) {
-        // Carica da localStorage se disponibile
-        const localQuotes = localStorage.getItem('hubris_quotes');
-        if (localQuotes) {
-            try {
-                savedQuotes = JSON.parse(localQuotes);
-                renderSavedQuotes();
-                updateAnalytics();
-                showNotification('📂 Preventivi caricati da memoria locale', 'info');
-            } catch (e) {
-                savedQuotes = [];
-            }
+    // SEMPRE carica da localStorage prima (FIX PRINCIPALE)
+    const localQuotes = localStorage.getItem('hubris_quotes');
+    if (localQuotes) {
+        try {
+            savedQuotes = JSON.parse(localQuotes);
+            renderSavedQuotes();
+            updateAnalytics();
+            console.log('✅ Preventivi caricati da localStorage:', savedQuotes.length);
+            showNotification('📂 Preventivi caricati (' + savedQuotes.length + ')', 'success');
+        } catch (e) {
+            console.error('Errore caricamento localStorage:', e);
+            savedQuotes = [];
         }
+    } else {
+        savedQuotes = [];
+        renderSavedQuotes();
+    }
+    
+    // Solo DOPO prova Google Sheets (opzionale)
+    if (!gapi_loaded || !isConnected) {
         return;
     }
+    
     try {
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: CONFIG.SHEETS_ID,
@@ -401,15 +409,12 @@ async function loadQuotesFromSheets() {
         });
         const values = response.result.values;
         if (values && values.length > 1) {
-            savedQuotes = parseQuotesData(values);
-            // Salva anche in localStorage come backup
-            localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
-            renderSavedQuotes();
-            updateAnalytics();
+            // Merge con localStorage se necessario
+            const sheetsQuotes = parseQuotesData(values);
+            console.log('🔄 Sync con Google Sheets:', sheetsQuotes.length, 'preventivi');
         }
     } catch (error) {
-        console.log('Foglio preventivi non trovato, verrà creato al primo salvataggio');
-        savedQuotes = [];
+        console.log('Google Sheets non disponibile per preventivi (normale)');
     }
 }
 
