@@ -1332,8 +1332,42 @@ function generatePDF() {
             });
         }
         
+       }
+        
+        // AGGIUNGERE SEZIONE TOTALI
+        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 150;
+        
+        doc.setFillColor(240, 245, 255);
+        doc.rect(130, finalY, 65, 35, 'F');
+        
+        doc.setDrawColor(44, 90, 160);
+        doc.rect(130, finalY, 65, 35);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Subtotale:', 135, finalY + 8);
+        doc.text(document.getElementById('subtotale').textContent, 185, finalY + 8, { align: 'right' });
+        
+        doc.text('Sconto:', 135, finalY + 15);
+        doc.text(document.getElementById('sconto-amount').textContent, 185, finalY + 15, { align: 'right' });
+        
+        doc.text('Imponibile:', 135, finalY + 22);
+        doc.text(document.getElementById('imponibile').textContent, 185, finalY + 22, { align: 'right' });
+        
+        doc.text('IVA 22%:', 135, finalY + 29);
+        doc.text(document.getElementById('iva').textContent, 185, finalY + 29, { align: 'right' });
+        
+        // LINEA TOTALE
+        doc.setLineWidth(1);
+        doc.line(135, finalY + 32, 190, finalY + 32);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(44, 90, 160);
+        doc.text('TOTALE:', 135, finalY + 42);
+        doc.text(document.getElementById('totale').textContent, 185, finalY + 42, { align: 'right' });
+        
         doc.save(quoteName.replace(/[^a-z0-9]/gi, '_') + '_SenzaPrezzi_' + quoteNumber + '.pdf');
-        showNotification('✅ Preventivo senza prezzi generato: ' + quoteNumber, 'success');
         
     } catch (error) {
         console.error('Errore generazione preventivo senza prezzi:', error);
@@ -1383,9 +1417,9 @@ function generateInsurance() {
         doc.setLineWidth(0.5);
         doc.line(15, 50, 195, 50);
         
-        // BOX CLIENTE
+       // BOX CLIENTE
         doc.setFillColor(240, 245, 255);
-        doc.rect(15, 60, 180, 15, 'F');
+        doc.rect(15, 60, 180, 20, 'F');
         
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
