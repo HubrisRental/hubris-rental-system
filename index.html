@@ -95,8 +95,7 @@
             <span>|</span>
             <span id="lastSync">Ultimo sync: mai</span>
             <span>|</span>
-            <button class="btn btn-warning" onclick="showConfigModal()" style="padding: 6px 12px; font-size: 12px;">⚙️ Config</button>
-        </div>
+<button class="btn btn-warning" onclick="document.getElementById('configModal').classList.add('active')" style="padding: 6px 12px; font-size: 12px;">⚙️ Config</button>        </div>
     </div>
 </nav>
 <div class="container">
@@ -315,9 +314,10 @@
 </div>
 <script>
 
+// CONFIGURAZIONE GLOBALE - CON I TUOI DATI
 let CONFIG = {
-    API_KEY: '', // Lascia vuoto, verrà caricato da localStorage o config modal
-    SHEETS_ID: '', // Lascia vuoto, verrà caricato da localStorage o config modal
+    API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
+    SHEETS_ID: '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc',
     DATABASE_RANGE: 'Database!A:G',
     QUOTES_RANGE: 'Preventivi_Salvati!A:Z'
 };
@@ -328,6 +328,26 @@ let savedQuotes = [];
 let isConnected = false;
 let gapi_loaded = false;
 let rowCounter = 0;
+
+// CONFIGURATION MODAL FUNCTIONS
+function showConfigModal() {
+    console.log('Opening config modal...');
+    const modal = document.getElementById('configModal');
+    if (modal) {
+        document.getElementById('apiKeyInput').value = CONFIG.API_KEY || '';
+        document.getElementById('sheetsIdInput').value = CONFIG.SHEETS_ID || '';
+        modal.classList.add('active');
+    } else {
+        console.error('Config modal not found!');
+    }
+}
+
+function closeConfigModal() {
+    const modal = document.getElementById('configModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
 
 // GOOGLE SHEETS API INITIALIZATION
 function initializeGoogleAPI() {
@@ -808,8 +828,8 @@ function showTab(tabName) {
 
 // CONFIGURATION MODAL
 function showConfigModal() {
-    document.getElementById('apiKeyInput').value = CONFIG.API_KEY;
-    document.getElementById('sheetsIdInput').value = CONFIG.SHEETS_ID;
+    document.getElementById('apiKeyInput').value = CONFIG.API_KEY || '';
+    document.getElementById('sheetsIdInput').value = CONFIG.SHEETS_ID || '';
     document.getElementById('configModal').classList.add('active');
 }
 
