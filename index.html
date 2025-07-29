@@ -354,7 +354,68 @@ window.saveConfig = function() {
     const apiKey = document.getElementById('apiKeyInput').value.trim();
     const sheetsId = document.getElementById('sheetsIdInput').value.trim();
     
-    // ... resto del codice saveConfig ...
+        // Validazione input
+    if (!apiKey || !sheetsId) {
+        showNotification('❌ Inserisci API Key e Sheets ID', 'error');
+        return;
+    }
+    
+    // Validazione formato API Key (deve iniziare con AIza)
+    if (!apiKey.startsWith('AIza') || apiKey.length < 39) {
+        showNotification('❌ API Key non valida (deve iniziare con AIza e avere 39 caratteri)', 'error');
+        showNotification('💡 Genera una nuova API Key da Google Cloud Console', 'info');
+        return;
+    }
+    
+    // Validazione formato Sheets ID (lunghezza minima)
+    if (sheetsId.length < 20 || sheetsId.includes(' ')) {
+        showNotification('❌ Sheets ID non valido (controlla di non avere spazi)', 'error');
+        return;
+    }
+    
+    console.log('💾 Salvataggio nuova configurazione...');
+    
+    try {
+        // Reset stato precedente
+        isConnected = false;
+        gapi_loaded = false;
+        updateConnectionStatus('offline', 'Configurazione in corso...');
+        
+        // Salva nuova configurazione
+        CONFIG.API_KEY = apiKey;
+        CONFIG.SHEETS_ID = sheetsId;
+        localStorage.setItem('hubris_api_key', apiKey);
+        localStorage.setItem('hubris_sheets_id', sheetsId);
+        
+        closeConfigModal();
+        showNotification('⚙️ Configurazione salvata. Test connessione...', 'info');
+        
+        // Test immediato della configurazione
+        if (typeof gapi !== 'undefined' && gapi.client) {
+            // Se gapi è già caricato, reinizializza
+            gapi.client.init({
+                apiKey: CONFIG.API_KEY,
+                discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+            }).then(() => {
+                console.log('🔄 Reinizializzazione API completata');
+                initializeGoogleAPI();
+            }).catch((error) => {
+                console.error('❌ Errore reinizializzazione:', error);
+                showNotification('❌ Errore: API Key non valida', 'error');
+            });
+        } else {
+            // Altrimenti inizializza normalmente
+            setTimeout(() => {
+                console.log('🔄 Avvio test connessione con nuova configurazione...');
+                initializeGoogleAPI();
+            }, 1500);
+        }
+        
+    } catch (error) {
+        console.error('❌ Errore salvataggio configurazione:', error);
+        showNotification('❌ Errore nel salvataggio della configurazione', 'error');
+    }
+
 }
 
 // GOOGLE SHEETS API INITIALIZATION
@@ -838,72 +899,6 @@ function closeConfigModal() {
     document.getElementById('configModal').classList.remove('active');
 }
 
-function saveConfig() {
-    const apiKey = document.getElementById('apiKeyInput').value.trim();
-    const sheetsId = document.getElementById('sheetsIdInput').value.trim();
-    
-    // Validazione input
-    if (!apiKey || !sheetsId) {
-        showNotification('❌ Inserisci API Key e Sheets ID', 'error');
-        return;
-    }
-    
-    // Validazione formato API Key (deve iniziare con AIza)
-    if (!apiKey.startsWith('AIza') || apiKey.length < 39) {
-        showNotification('❌ API Key non valida (deve iniziare con AIza e avere 39 caratteri)', 'error');
-        showNotification('💡 Genera una nuova API Key da Google Cloud Console', 'info');
-        return;
-    }
-    
-    // Validazione formato Sheets ID (lunghezza minima)
-    if (sheetsId.length < 20 || sheetsId.includes(' ')) {
-        showNotification('❌ Sheets ID non valido (controlla di non avere spazi)', 'error');
-        return;
-    }
-    
-    console.log('💾 Salvataggio nuova configurazione...');
-    
-    try {
-        // Reset stato precedente
-        isConnected = false;
-        gapi_loaded = false;
-        updateConnectionStatus('offline', 'Configurazione in corso...');
-        
-        // Salva nuova configurazione
-        CONFIG.API_KEY = apiKey;
-        CONFIG.SHEETS_ID = sheetsId;
-        localStorage.setItem('hubris_api_key', apiKey);
-        localStorage.setItem('hubris_sheets_id', sheetsId);
-        
-        closeConfigModal();
-        showNotification('⚙️ Configurazione salvata. Test connessione...', 'info');
-        
-        // Test immediato della configurazione
-        if (typeof gapi !== 'undefined' && gapi.client) {
-            // Se gapi è già caricato, reinizializza
-            gapi.client.init({
-                apiKey: CONFIG.API_KEY,
-                discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
-            }).then(() => {
-                console.log('🔄 Reinizializzazione API completata');
-                initializeGoogleAPI();
-            }).catch((error) => {
-                console.error('❌ Errore reinizializzazione:', error);
-                showNotification('❌ Errore: API Key non valida', 'error');
-            });
-        } else {
-            // Altrimenti inizializza normalmente
-            setTimeout(() => {
-                console.log('🔄 Avvio test connessione con nuova configurazione...');
-                initializeGoogleAPI();
-            }, 1500);
-        }
-        
-    } catch (error) {
-        console.error('❌ Errore salvataggio configurazione:', error);
-        showNotification('❌ Errore nel salvataggio della configurazione', 'error');
-    }
-}
 // NUOVA FUNZIONE - TEST CONNESSIONE
 async function testConnection() {
     if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
