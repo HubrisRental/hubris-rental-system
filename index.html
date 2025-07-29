@@ -2905,6 +2905,31 @@ window.addEventListener('beforeunload', function(e) {
         e.returnValue = '';
     }
 });
+// FALLBACK - Event listeners manuali
+document.addEventListener('DOMContentLoaded', function() {
+    // Fix per i bottoni del modal
+    setTimeout(() => {
+        const modal = document.getElementById('configModal');
+        if (modal) {
+            const saveBtn = modal.querySelector('.btn-success');
+            const cancelBtn = modal.querySelector('.btn-danger');
+            
+            if (saveBtn && !saveBtn.onclick) {
+                saveBtn.onclick = function() {
+                    console.log('Save clicked (fallback)');
+                    window.saveConfig();
+                };
+            }
+            
+            if (cancelBtn && !cancelBtn.onclick) {
+                cancelBtn.onclick = function() {
+                    console.log('Cancel clicked (fallback)');
+                    window.closeConfigModal();
+                };
+            }
+        }
+    }, 100);
+});
 </script>
 </body>
 </html>
