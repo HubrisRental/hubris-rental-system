@@ -314,10 +314,10 @@
     </div>
 </div>
 <script>
-    // CONFIGURAZIONE GLOBALE - AGGIORNATA CON NUOVO SHEETS ID
+
 let CONFIG = {
-    API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
-    SHEETS_ID: '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc',
+    API_KEY: '', // Lascia vuoto, verrà caricato da localStorage o config modal
+    SHEETS_ID: '', // Lascia vuoto, verrà caricato da localStorage o config modal
     DATABASE_RANGE: 'Database!A:G',
     QUOTES_RANGE: 'Preventivi_Salvati!A:Z'
 };
@@ -333,7 +333,7 @@ let rowCounter = 0;
 function initializeGoogleAPI() {
     if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
         updateConnectionStatus('offline', 'Configurazione mancante');
-        showNotification('⚙️ Configurazione API mancante', 'warning');
+        showNotification('⚙️ Configurazione API mancante - Clicca su Config', 'warning');
         return;
     }
 
@@ -363,12 +363,28 @@ function initializeGoogleAPI() {
                 
                 // Test connessione con un tentativo di lettura
                 try {
-                    await loadDatabaseFromSheets();
-                    await loadQuotesFromSheets();
-                    showNotification('✅ Connessione Google Sheets stabilita!', 'success');
+                    // Prima verifica che il foglio esista
+                    const testResponse = await gapi.client.sheets.spreadsheets.get({
+                        spreadsheetId: CONFIG.SHEETS_ID
+                    });
+                    
+                    if (testResponse && testResponse.result) {
+                        console.log('✅ Google Sheet verificato:', testResponse.result.properties.title);
+                        await loadDatabaseFromSheets();
+                        await loadQuotesFromSheets();
+                        showNotification('✅ Connessione Google Sheets stabilita!', 'success');
+                    }
                 } catch (loadError) {
                     console.error('Errore caricamento dati:', loadError);
-                    showNotification('⚠️ Connesso ma errore nel caricamento dati', 'warning');
+                    
+                    if (loadError.status === 403) {
+                        showNotification('❌ API Key non valida o senza permessi', 'error');
+                        showNotification('💡 Genera una nuova API Key da Google Cloud Console', 'info');
+                    } else if (loadError.status === 404) {
+                        showNotification('❌ Google Sheet non trovato o non condiviso', 'error');
+                    } else {
+                        showNotification('⚠️ Connesso ma errore nel caricamento dati', 'warning');
+                    }
                 }
                 
             } catch (error) {
@@ -378,12 +394,13 @@ function initializeGoogleAPI() {
                 updateConnectionStatus('offline', 'Errore connessione');
                 
                 // Messaggi di errore più specifici
-                if (error.message.includes('API_KEY_INVALID')) {
-                    showNotification('❌ API Key non valida', 'error');
-                } else if (error.message.includes('PERMISSION_DENIED')) {
-                    showNotification('❌ Permessi negati - verificare condivisione Sheets', 'error');
+                if (error.error && error.error.code === 400) {
+                    showNotification('❌ API Key non valida - Verificare configurazione', 'error');
+                    showNotification('💡 Vai su Config e inserisci una API Key valida', 'info');
+                } else if (error.message && error.message.includes('API key not valid')) {
+                    showNotification('❌ API Key non valida o disabilitata', 'error');
                 } else {
-                    showNotification('❌ Errore connessione: ' + error.message, 'error');
+                    showNotification('❌ Errore connessione: ' + (error.message || 'Sconosciuto'), 'error');
                 }
             }
         },
