@@ -95,7 +95,7 @@
             <span>|</span>
             <span id="lastSync">Ultimo sync: mai</span>
             <span>|</span>
-<button class="btn btn-warning" id="configBtn" style="padding: 6px 12px; font-size: 12px;">⚙️ Config</button>
+<button class="btn btn-warning" onclick="document.getElementById('configModal').classList.add('active')" style="padding: 6px 12px; font-size: 12px;">⚙️ Config</button>
     </div>
 </nav>
 <div class="container">
@@ -119,8 +119,23 @@
             <input type="text" class="form-input" id="sheetsIdInput" placeholder="ID del tuo Google Sheets">
         </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-            <button class="btn btn-danger" id="cancelBtn">Annulla</button>
-            <button class="btn btn-success" id="saveBtn">💾 Salva e Connetti</button>
+    <button class="btn btn-danger" onclick="document.getElementById('configModal').classList.remove('active')">Annulla</button>
+    <button class="btn btn-success" onclick="(function(){
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        const sheetsId = document.getElementById('sheetsIdInput').value.trim();
+        if (!apiKey || !sheetsId) {
+            alert('Inserisci API Key e Sheets ID');
+            return;
+        }
+        CONFIG.API_KEY = apiKey;
+        CONFIG.SHEETS_ID = sheetsId;
+        localStorage.setItem('hubris_api_key', apiKey);
+        localStorage.setItem('hubris_sheets_id', sheetsId);
+        document.getElementById('configModal').classList.remove('active');
+        alert('Configurazione salvata! Ricarica la pagina.');
+        location.reload();
+    })()">💾 Salva e Connetti</button>
+</div>
         </div>
     </div>
 </div>
