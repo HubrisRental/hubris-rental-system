@@ -138,8 +138,8 @@
             <label class="form-label">Sheets ID:</label>
             <input type="text" class="form-input" id="sheetsIdInput" placeholder="ID del tuo Google Sheets">
         </div>
-        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
-    <button class="btn btn-danger" onclick="document.getElementById('configModal').classList.remove('active')">Annulla</button>
+   <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap;">
+    <button class="btn btn-danger" onclick="document.getElementById('configModal').classList.remove('active')" style="flex: 1; min-width: 100px;">Annulla</button>
     <button class="btn btn-success" onclick="(function(){
         const apiKey = document.getElementById('apiKeyInput').value.trim();
         const sheetsId = document.getElementById('sheetsIdInput').value.trim();
@@ -154,7 +154,8 @@
         document.getElementById('configModal').classList.remove('active');
         alert('Configurazione salvata! Ricarica la pagina.');
         location.reload();
-    })()">💾 Salva e Connetti</button>
+    })()" style="flex: 1; min-width: 120px;">💾 Salva</button>
+</div>
 </div>
         </div>
     </div>
