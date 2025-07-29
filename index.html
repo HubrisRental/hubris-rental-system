@@ -330,7 +330,8 @@ let gapi_loaded = false;
 let rowCounter = 0;
 
 // CONFIGURATION MODAL FUNCTIONS
-function showConfigModal() {
+// CONFIGURATION MODAL FUNCTIONS - GLOBALI
+window.showConfigModal = function() {
     console.log('Opening config modal...');
     const modal = document.getElementById('configModal');
     if (modal) {
@@ -342,11 +343,18 @@ function showConfigModal() {
     }
 }
 
-function closeConfigModal() {
+window.closeConfigModal = function() {
     const modal = document.getElementById('configModal');
     if (modal) {
         modal.classList.remove('active');
     }
+}
+
+window.saveConfig = function() {
+    const apiKey = document.getElementById('apiKeyInput').value.trim();
+    const sheetsId = document.getElementById('sheetsIdInput').value.trim();
+    
+    // ... resto del codice saveConfig ...
 }
 
 // GOOGLE SHEETS API INITIALIZATION
