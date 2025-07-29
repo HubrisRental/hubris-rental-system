@@ -845,7 +845,50 @@ function saveConfig() {
         showNotification('❌ Errore nel salvataggio della configurazione', 'error');
     }
 }
-
+// NUOVA FUNZIONE - TEST CONNESSIONE
+async function testConnection() {
+    if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
+        showNotification('⚙️ Configurazione mancante per il test', 'warning');
+        return false;
+    }
+    
+    console.log('🧪 Test connessione Google Sheets...');
+    updateConnectionStatus('syncing', 'Test connessione...');
+    
+    try {
+        // Test semplice: prova a leggere una cella qualsiasi
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SHEETS_ID,
+            range: 'A1:A1' // Solo una cella per test veloce
+        });
+        
+        if (response && response.result) {
+            console.log('✅ Test connessione riuscito');
+            updateConnectionStatus('online', 'Connesso e testato');
+            showNotification('✅ Connessione Google Sheets verificata!', 'success');
+            return true;
+        } else {
+            throw new Error('Risposta vuota dal test');
+        }
+        
+    } catch (error) {
+        console.error('❌ Test connessione fallito:', error);
+        updateConnectionStatus('offline', 'Test fallito');
+        
+        // Messaggi di errore specifici
+        if (error.message.includes('API_KEY_INVALID')) {
+            showNotification('❌ API Key non valida', 'error');
+        } else if (error.message.includes('PERMISSION_DENIED')) {
+            showNotification('❌ Accesso negato - verificare condivisione Sheet', 'error');
+        } else if (error.message.includes('NOT_FOUND')) {
+            showNotification('❌ Google Sheet non trovato', 'error');
+        } else {
+            showNotification('❌ Test connessione fallito: ' + error.message, 'error');
+        }
+        
+        return false;
+    }
+}
 // QUOTE MANAGEMENT
 function addEquipmentRow() {
     if (Object.keys(equipmentDatabase).length === 0) {
