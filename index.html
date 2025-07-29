@@ -331,91 +331,209 @@ let rowCounter = 0;
 
 // GOOGLE SHEETS API INITIALIZATION
 function initializeGoogleAPI() {
+    if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
+        updateConnectionStatus('offline', 'Configurazione mancante');
+        showNotification('⚙️ Configurazione API mancante', 'warning');
+        return;
+    }
+
     updateConnectionStatus('syncing', 'Connessione in corso...');
-    gapi.load('client', async () => {
-        try {
-            await gapi.client.init({
-                apiKey: CONFIG.API_KEY,
-                discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
-            });
-            gapi_loaded = true;
-            isConnected = true;
-            updateConnectionStatus('online', 'Connesso');
-            await loadDatabaseFromSheets();
-            await loadQuotesFromSheets();
-            showNotification('✅ Connessione Google Sheets stabilita!', 'success');
-        } catch (error) {
-            console.error('Errore inizializzazione API:', error);
-            updateConnectionStatus('offline', 'Errore connessione');
-            showNotification('❌ Errore connessione Google Sheets: ' + error.message, 'error');
+    
+    // Verifica se gapi è disponibile
+    if (typeof gapi === 'undefined') {
+        console.error('Google API non caricata');
+        updateConnectionStatus('offline', 'Google API non disponibile');
+        showNotification('❌ Google API non caricata. Ricaricare la pagina.', 'error');
+        return;
+    }
+
+    gapi.load('client', {
+        callback: async () => {
+            try {
+                console.log('🔄 Inizializzazione Google API...');
+                await gapi.client.init({
+                    apiKey: CONFIG.API_KEY,
+                    discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
+                });
+                
+                console.log('✅ Google API inizializzata');
+                gapi_loaded = true;
+                isConnected = true;
+                updateConnectionStatus('online', 'Connesso');
+                
+                // Test connessione con un tentativo di lettura
+                try {
+                    await loadDatabaseFromSheets();
+                    await loadQuotesFromSheets();
+                    showNotification('✅ Connessione Google Sheets stabilita!', 'success');
+                } catch (loadError) {
+                    console.error('Errore caricamento dati:', loadError);
+                    showNotification('⚠️ Connesso ma errore nel caricamento dati', 'warning');
+                }
+                
+            } catch (error) {
+                console.error('Errore inizializzazione API:', error);
+                gapi_loaded = false;
+                isConnected = false;
+                updateConnectionStatus('offline', 'Errore connessione');
+                
+                // Messaggi di errore più specifici
+                if (error.message.includes('API_KEY_INVALID')) {
+                    showNotification('❌ API Key non valida', 'error');
+                } else if (error.message.includes('PERMISSION_DENIED')) {
+                    showNotification('❌ Permessi negati - verificare condivisione Sheets', 'error');
+                } else {
+                    showNotification('❌ Errore connessione: ' + error.message, 'error');
+                }
+            }
+        },
+        onerror: (error) => {
+            console.error('Errore caricamento gapi:', error);
+            updateConnectionStatus('offline', 'Errore caricamento API');
+            showNotification('❌ Errore nel caricamento delle API Google', 'error');
         }
     });
 }
-
 // GOOGLE SHEETS DATA LOADING
 async function loadDatabaseFromSheets() {
     if (!gapi_loaded || !isConnected) {
-        showNotification('⚠️ Connessione Google Sheets non disponibile', 'warning');
+        console.log('⚠️ API non inizializzate, skippo caricamento database');
         return;
     }
+
     try {
         updateConnectionStatus('syncing', 'Sincronizzazione database...');
+        console.log('🔄 Caricamento database da Sheets ID:', CONFIG.SHEETS_ID);
+        console.log('🔄 Range:', CONFIG.DATABASE_RANGE);
+
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: CONFIG.SHEETS_ID,
             range: CONFIG.DATABASE_RANGE
         });
-        const values = response.result.values;
-        if (!values || values.length === 0) {
-            throw new Error('Nessun dato trovato nel database');
+
+        console.log('📊 Risposta API ricevuta:', response);
+
+        if (!response || !response.result) {
+            throw new Error('Risposta API vuota');
         }
+
+        const values = response.result.values;
+        console.log('📋 Dati ricevuti:', values ? values.length + ' righe' : 'nessun dato');
+
+        if (!values || values.length === 0) {
+            throw new Error('Nessun dato trovato nel database. Verificare il range: ' + CONFIG.DATABASE_RANGE);
+        }
+
+        if (values.length < 2) {
+            throw new Error('Database troppo piccolo (solo ' + values.length + ' righe)');
+        }
+
         processEquipmentData(values);
         updateConnectionStatus('online', 'Database aggiornato');
         updateSyncTime();
-        showNotification('✅ Database caricato: ' + Object.keys(equipmentDatabase).length + ' categorie', 'success');
+        
+        const categoriesCount = Object.keys(equipmentDatabase).length;
+        let itemsCount = 0;
+        Object.values(equipmentDatabase).forEach(cat => {
+            itemsCount += Object.keys(cat).length;
+        });
+
+        showNotification(`✅ Database caricato: ${categoriesCount} categorie, ${itemsCount} articoli`, 'success');
+        console.log('✅ Database processato con successo');
+
     } catch (error) {
-        console.error('Errore caricamento database:', error);
+        console.error('❌ Errore dettagliato caricamento database:', error);
         updateConnectionStatus('offline', 'Errore sync database');
-        showNotification('❌ Errore caricamento database: ' + error.message, 'error');
+        
+        // Messaggi di errore più specifici
+        if (error.message.includes('PERMISSION_DENIED')) {
+            showNotification('❌ Accesso negato al Google Sheet. Verificare condivisione.', 'error');
+        } else if (error.message.includes('NOT_FOUND')) {
+            showNotification('❌ Google Sheet non trovato. Verificare ID.', 'error');
+        } else if (error.message.includes('INVALID_ARGUMENT')) {
+            showNotification('❌ Range non valido: ' + CONFIG.DATABASE_RANGE, 'error');
+        } else {
+            showNotification('❌ Errore database: ' + error.message, 'error');
+        }
     }
 }
 
 async function loadQuotesFromSheets() {
-    // SEMPRE carica da localStorage prima (FIX PRINCIPALE)
+    console.log('🔄 Caricamento preventivi...');
+    
+    // SEMPRE carica da localStorage prima
     const localQuotes = localStorage.getItem('hubris_quotes');
     if (localQuotes) {
         try {
-            savedQuotes = JSON.parse(localQuotes);
-            renderSavedQuotes();
-            updateAnalytics();
-            console.log('✅ Preventivi caricati da localStorage:', savedQuotes.length);
-            showNotification('📂 Preventivi caricati (' + savedQuotes.length + ')', 'success');
+            const parsedQuotes = JSON.parse(localQuotes);
+            if (Array.isArray(parsedQuotes)) {
+                savedQuotes = parsedQuotes;
+                renderSavedQuotes();
+                updateAnalytics();
+                console.log('✅ Preventivi caricati da localStorage:', savedQuotes.length);
+                if (savedQuotes.length > 0) {
+                    showNotification(`📂 ${savedQuotes.length} preventivi caricati`, 'success');
+                }
+            } else {
+                console.log('⚠️ Formato localStorage non valido, reset');
+                savedQuotes = [];
+                localStorage.removeItem('hubris_quotes');
+            }
         } catch (e) {
-            console.error('Errore caricamento localStorage:', e);
+            console.error('❌ Errore parsing localStorage:', e);
             savedQuotes = [];
+            localStorage.removeItem('hubris_quotes');
         }
     } else {
+        console.log('📂 Nessun preventivo in localStorage');
         savedQuotes = [];
-        renderSavedQuotes();
     }
     
-    // Solo DOPO prova Google Sheets (opzionale)
-    if (!gapi_loaded || !isConnected) {
-        return;
-    }
+    // Sempre renderizza, anche se vuoto
+    renderSavedQuotes();
+    updateAnalytics();
     
-    try {
-        const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: CONFIG.SHEETS_ID,
-            range: CONFIG.QUOTES_RANGE
-        });
-        const values = response.result.values;
-        if (values && values.length > 1) {
-            // Merge con localStorage se necessario
-            const sheetsQuotes = parseQuotesData(values);
-            console.log('🔄 Sync con Google Sheets:', sheetsQuotes.length, 'preventivi');
+    // Tentativo opzionale Google Sheets (solo se connesso)
+    if (gapi_loaded && isConnected) {
+        try {
+            console.log('🔄 Tentativo sync Google Sheets preventivi...');
+            const response = await gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: CONFIG.SHEETS_ID,
+                range: CONFIG.QUOTES_RANGE
+            });
+            
+            if (response && response.result && response.result.values) {
+                const values = response.result.values;
+                if (values.length > 1) {
+                    const sheetsQuotes = parseQuotesData(values);
+                    console.log('📊 Preventivi trovati su Google Sheets:', sheetsQuotes.length);
+                    
+                    // Merge intelligente (evita duplicati)
+                    let merged = 0;
+                    sheetsQuotes.forEach(sheetQuote => {
+                        const existsLocally = savedQuotes.find(localQuote => 
+                            localQuote.id === sheetQuote.id || 
+                            (localQuote.name === sheetQuote.name && localQuote.cliente === sheetQuote.cliente)
+                        );
+                        
+                        if (!existsLocally) {
+                            savedQuotes.push(sheetQuote);
+                            merged++;
+                        }
+                    });
+                    
+                    if (merged > 0) {
+                        localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
+                        renderSavedQuotes();
+                        updateAnalytics();
+                        showNotification(`🔄 ${merged} preventivi sincronizzati da Google Sheets`, 'info');
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('⚠️ Google Sheets preventivi non disponibile:', error.message);
+            // Non mostrare errore all'utente, è normale che non ci sia il foglio preventivi
         }
-    } catch (error) {
-        console.log('Google Sheets non disponibile per preventivi (normale)');
     }
 }
 
@@ -448,36 +566,89 @@ async function saveQuoteToSheets(quote) {
 
 // DATA PROCESSING
 function processEquipmentData(values) {
+    console.log('🔄 Processamento dati database...');
+    
+    if (!values || !Array.isArray(values) || values.length < 2) {
+        console.error('❌ Dati non validi per processamento');
+        showNotification('❌ Formato dati database non valido', 'error');
+        return;
+    }
+    
     equipmentDatabase = {};
     const processedData = [];
     let currentCategory = '';
+    let processedRows = 0;
+    let skippedRows = 0;
+    
+    // Salta l'header (riga 0)
     for (let i = 1; i < values.length; i++) {
         const row = values[i];
-        if (!row || row.length === 0) continue;
-        const name = row[0] || '';
+        
+        // Salta righe vuote o incomplete
+        if (!row || row.length === 0) {
+            skippedRows++;
+            continue;
+        }
+        
+        const name = (row[0] || '').toString().trim();
         const price1 = parseFloat(row[1]) || 0;
         const price3 = parseFloat(row[2]) || 0;
         const price7 = parseFloat(row[3]) || 0;
         const insurance = parseFloat(row[4]) || 0;
-        const kit = row[5] || '';
-        const notes = row[6] || '';
-        if (name && !price1 && !price3 && !price7 && !insurance) {
-            currentCategory = name;
-            if (!equipmentDatabase[currentCategory]) {
-                equipmentDatabase[currentCategory] = {};
+        const kit = (row[5] || '').toString().trim();
+        const notes = (row[6] || '').toString().trim();
+        
+        // Logica migliorata per identificare categorie vs articoli
+        if (name) {
+            // È una categoria se ha solo nome e nessun prezzo
+            if (!price1 && !price3 && !price7 && !insurance && !kit) {
+                currentCategory = name;
+                if (!equipmentDatabase[currentCategory]) {
+                    equipmentDatabase[currentCategory] = {};
+                }
+                console.log('📁 Nuova categoria:', currentCategory);
+            } 
+            // È un articolo se ha almeno un prezzo E una categoria corrente
+            else if (currentCategory && (price1 > 0 || price3 > 0 || price7 > 0)) {
+                equipmentDatabase[currentCategory][name] = {
+                    price1, price3, price7, insurance, kit, notes
+                };
+                processedData.push({
+                    category: currentCategory, 
+                    name, 
+                    price1, 
+                    price3, 
+                    price7, 
+                    insurance, 
+                    kit, 
+                    notes
+                });
+                processedRows++;
+            } else {
+                console.log('⚠️ Riga saltata (no categoria o prezzi):', name);
+                skippedRows++;
             }
-        } else if (name && currentCategory) {
-            equipmentDatabase[currentCategory][name] = {
-                price1, price3, price7, insurance, kit, notes
-            };
-            processedData.push({
-                category: currentCategory, name, price1, price3, price7, insurance, kit, notes
-            });
+        } else {
+            skippedRows++;
         }
     }
+    
+    console.log(`✅ Processamento completato: ${processedRows} articoli, ${skippedRows} righe saltate`);
+    console.log(`📊 Categorie create: ${Object.keys(equipmentDatabase).length}`);
+    
+    // Verifica che ci siano dati processati
+    if (processedRows === 0) {
+        console.error('❌ Nessun articolo processato dal database');
+        showNotification('❌ Nessun articolo trovato nel database', 'error');
+        return;
+    }
+    
+    // Aggiorna l'interfaccia
     renderDatabase(processedData);
     updateCategoryFilter();
     updateDbStats();
+    
+    console.log('🎯 Database processato e renderizzato con successo');
 }
 
 function parseQuotesData(values) {
@@ -627,21 +798,97 @@ function closeConfigModal() {
 function saveConfig() {
     const apiKey = document.getElementById('apiKeyInput').value.trim();
     const sheetsId = document.getElementById('sheetsIdInput').value.trim();
+    
+    // Validazione input
     if (!apiKey || !sheetsId) {
         showNotification('❌ Inserisci API Key e Sheets ID', 'error');
         return;
     }
-    CONFIG.API_KEY = apiKey;
-    CONFIG.SHEETS_ID = sheetsId;
-    localStorage.setItem('hubris_api_key', apiKey);
-    localStorage.setItem('hubris_sheets_id', sheetsId);
-    closeConfigModal();
-    showNotification('⚙️ Configurazione salvata. Connessione in corso...', 'info');
-    setTimeout(() => {
-        initializeGoogleAPI();
-    }, 1000);
+    
+    // Validazione formato API Key (deve iniziare con AIza)
+    if (!apiKey.startsWith('AIza')) {
+        showNotification('❌ API Key non valida (deve iniziare con AIza)', 'error');
+        return;
+    }
+    
+    // Validazione formato Sheets ID (lunghezza minima)
+    if (sheetsId.length < 20) {
+        showNotification('❌ Sheets ID troppo corto', 'error');
+        return;
+    }
+    
+    console.log('💾 Salvataggio nuova configurazione...');
+    
+    try {
+        // Reset stato precedente
+        isConnected = false;
+        gapi_loaded = false;
+        updateConnectionStatus('offline', 'Configurazione in corso...');
+        
+        // Salva nuova configurazione
+        CONFIG.API_KEY = apiKey;
+        CONFIG.SHEETS_ID = sheetsId;
+        localStorage.setItem('hubris_api_key', apiKey);
+        localStorage.setItem('hubris_sheets_id', sheetsId);
+        
+        closeConfigModal();
+        showNotification('⚙️ Configurazione salvata. Test connessione...', 'info');
+        
+        // Ritardo per permettere la chiusura del modal
+        setTimeout(() => {
+            console.log('🔄 Avvio test connessione con nuova configurazione...');
+            initializeGoogleAPI();
+        }, 1500);
+        
+    } catch (error) {
+        console.error('❌ Errore salvataggio configurazione:', error);
+        showNotification('❌ Errore nel salvataggio della configurazione', 'error');
+    }
 }
-
+// NUOVA FUNZIONE - TEST CONNESSIONE
+async function testConnection() {
+    if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
+        showNotification('⚙️ Configurazione mancante per il test', 'warning');
+        return false;
+    }
+    
+    console.log('🧪 Test connessione Google Sheets...');
+    updateConnectionStatus('syncing', 'Test connessione...');
+    
+    try {
+        // Test semplice: prova a leggere una cella qualsiasi
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SHEETS_ID,
+            range: 'A1:A1' // Solo una cella per test veloce
+        });
+        
+        if (response && response.result) {
+            console.log('✅ Test connessione riuscito');
+            updateConnectionStatus('online', 'Connesso e testato');
+            showNotification('✅ Connessione Google Sheets verificata!', 'success');
+            return true;
+        } else {
+            throw new Error('Risposta vuota dal test');
+        }
+        
+    } catch (error) {
+        console.error('❌ Test connessione fallito:', error);
+        updateConnectionStatus('offline', 'Test fallito');
+        
+        // Messaggi di errore specifici
+        if (error.message.includes('API_KEY_INVALID')) {
+            showNotification('❌ API Key non valida', 'error');
+        } else if (error.message.includes('PERMISSION_DENIED')) {
+            showNotification('❌ Accesso negato - verificare condivisione Sheet', 'error');
+        } else if (error.message.includes('NOT_FOUND')) {
+            showNotification('❌ Google Sheet non trovato', 'error');
+        } else {
+            showNotification('❌ Test connessione fallito: ' + error.message, 'error');
+        }
+        
+        return false;
+    }
+}
 // QUOTE MANAGEMENT
 function addEquipmentRow() {
     if (Object.keys(equipmentDatabase).length === 0) {
@@ -990,14 +1237,35 @@ function filterByCategory() {
 }
 
 function syncDatabase() {
-    const loader = document.getElementById('syncLoader');
     const btn = document.getElementById('syncBtn');
-    if (loader) loader.style.display = 'inline-block';
-    if (btn) btn.disabled = true;
-    loadDatabaseFromSheets().finally(() => {
-        if (loader) loader.style.display = 'none';
-        if (btn) btn.disabled = false;
-    });
+    
+    if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
+        showNotification('⚙️ Configurazione API mancante', 'warning');
+        return;
+    }
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = '🔄 Sincronizzazione...';
+    }
+    
+    console.log('🔄 Sync manuale database avviato...');
+    showNotification('🔄 Sincronizzazione database in corso...', 'info');
+    
+    loadDatabaseFromSheets()
+        .then(() => {
+            showNotification('✅ Database sincronizzato con successo!', 'success');
+        })
+        .catch((error) => {
+            console.error('❌ Errore sync database:', error);
+            showNotification('❌ Errore nella sincronizzazione database', 'error');
+        })
+        .finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = '🔄 Sync';
+            }
+        });
 }
 
 function syncQuotes() {
@@ -1010,13 +1278,48 @@ function syncQuotes() {
 function updateConnectionStatus(status, message) {
     const indicator = document.getElementById('connectionStatus');
     const text = document.getElementById('connectionText');
-    if (indicator) indicator.className = 'status-indicator status-' + status;
-    if (text) text.textContent = message;
+    
+    if (indicator) {
+        indicator.className = 'status-indicator status-' + status;
+    }
+    
+    if (text) {
+        text.textContent = message;
+    }
+    
+    // Logging per debugging
+    console.log(`📡 Status: ${status} - ${message}`);
+    
+    // Aggiorna variabili globali di stato
+    switch(status) {
+        case 'online':
+            isConnected = true;
+            break;
+        case 'offline':
+        case 'error':
+            isConnected = false;
+            gapi_loaded = false;
+            break;
+        case 'syncing':
+            // Mantieni stato precedente durante sync
+            break;
+    }
 }
 
 function updateSyncTime() {
     const lastSync = document.getElementById('lastSync');
-    if (lastSync) lastSync.textContent = 'Ultimo sync: ' + new Date().toLocaleTimeString('it-IT');
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('it-IT', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    if (lastSync) {
+        lastSync.textContent = 'Ultimo sync: ' + timeString;
+    }
+    
+    console.log('⏰ Sync time aggiornato:', timeString);
 }
 
 function showNotification(message, type) {
@@ -1136,13 +1439,254 @@ function generatePDF() {
         doc.text('Al: ' + (scarico || 'Da definire'), 113, 86);
         doc.text('Durata: ' + durata + ' giorni', 113, 92);
         
-        return doc; // Continuo nella prossima parte
+        // TITOLO TABELLA - CENTRATO E EVIDENZIATO
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 90, 160);
+        doc.text('DETTAGLIO ATTREZZATURE E SERVIZI', 105, 110, { align: 'center' });
+        
+        // PREPARAZIONE DATI TABELLA - SEPARANDO ATTREZZATURE E SERVIZI
+        const equipmentData = [];
+        const servicesData = [];
+        let equipmentTotal = 0;
+        let servicesTotal = 0;
+        
+        document.querySelectorAll('[id^="row-"]').forEach(row => {
+            const rowId = row.id.split('-')[1];
+            
+            if (row.classList.contains('service-row')) {
+                const serviceName = document.getElementById('service-name-' + rowId)?.value || '';
+                const serviceNotes = document.getElementById('service-notes-' + rowId)?.value || '';
+                const quantity = document.getElementById('qty-' + rowId)?.value || '';
+                const price = parseFloat(document.getElementById('service-price-' + rowId)?.value || '0');
+                const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
+                
+                if (serviceName) {
+                    servicesData.push([
+                        'Servizi',
+                        serviceName + (serviceNotes ? '\n' + serviceNotes : ''),
+                        quantity,
+                        '€ ' + price.toFixed(2),
+                        '€ ' + total.toFixed(2)
+                    ]);
+                    servicesTotal += total;
+                }
+            } else {
+                const category = document.getElementById('category-' + rowId)?.value || '';
+                const equipment = document.getElementById('equipment-' + rowId)?.value || '';
+                const quantity = document.getElementById('qty-' + rowId)?.value || '';
+                const priceText = document.getElementById('price-' + rowId)?.textContent || '€ 0.00';
+                const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
+                const kitInfo = document.getElementById('kit-' + rowId)?.textContent || '';
+                
+                if (category && equipment) {
+                    equipmentData.push([
+                        category,
+                        equipment + (kitInfo ? '\n' + kitInfo : ''),
+                        quantity,
+                        priceText,
+                        '€ ' + total.toFixed(2)
+                    ]);
+                    equipmentTotal += total;
+                }
+            }
+        });
+        
+        // TABELLA ATTREZZATURE
+        let currentY = 120;
+        
+        if (equipmentData.length > 0) {
+            // HEADER ATTREZZATURE
+            doc.setFillColor(44, 90, 160);
+            doc.rect(15, currentY, 180, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('ATTREZZATURE', 105, currentY + 5, { align: 'center' });
+            currentY += 8;
+            
+            doc.autoTable({
+                head: [['Categoria', 'Articolo', 'Qtà', 'Prezzo Unit.', 'Totale']],
+                body: equipmentData,
+                startY: currentY,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [70, 130, 180],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 9
+                },
+                bodyStyles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                columnStyles: {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 70 },
+                    2: { cellWidth: 20, halign: 'center' },
+                    3: { cellWidth: 25, halign: 'right' },
+                    4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 255]
+                }
+            });
+            
+            currentY = doc.lastAutoTable.finalY + 5;
+            
+            // TOTALE ATTREZZATURE
+            doc.setFillColor(240, 245, 255);
+            doc.rect(150, currentY, 45, 8, 'F');
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Totale attrezzatura:', 152, currentY + 5);
+            doc.text('€ ' + equipmentTotal.toFixed(2), 193, currentY + 5, { align: 'right' });
+            currentY += 12;
+        }
+        
+        // TABELLA SERVIZI
+        if (servicesData.length > 0) {
+            // HEADER SERVIZI
+            doc.setFillColor(255, 152, 0);
+            doc.rect(15, currentY, 180, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('SERVIZI', 105, currentY + 5, { align: 'center' });
+            currentY += 8;
+            
+            doc.autoTable({
+                head: [['Categoria', 'Servizio', 'Qtà', 'Prezzo Unit.', 'Totale']],
+                body: servicesData,
+                startY: currentY,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [230, 126, 34],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 9
+                },
+                bodyStyles: {
+                    fontSize: 8,
+                    cellPadding: 2
+                },
+                columnStyles: {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 70 },
+                    2: { cellWidth: 20, halign: 'center' },
+                    3: { cellWidth: 25, halign: 'right' },
+                    4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+                },
+                alternateRowStyles: {
+                    fillColor: [255, 243, 224]
+                }
+            });
+            
+            currentY = doc.lastAutoTable.finalY + 5;
+            
+            // TOTALE SERVIZI
+            doc.setFillColor(255, 243, 224);
+            doc.rect(150, currentY, 45, 8, 'F');
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Totale servizi:', 152, currentY + 5);
+            doc.text('€ ' + servicesTotal.toFixed(2), 193, currentY + 5, { align: 'right' });
+            currentY += 15;
+        }
+        
+        // Continua con i totali finali...
+        const subtotalValue = parseFloat(document.getElementById('subtotale').textContent.replace('€ ', '')) || 0;
+        const discountPercent = parseFloat(document.getElementById('sconto').value) || 0;
+        const discountAmount = parseFloat(document.getElementById('sconto-amount').textContent.replace('€ ', '')) || 0;
+        const imponibileValue = parseFloat(document.getElementById('imponibile').textContent.replace('€ ', '')) || 0;
+        const ivaValue = parseFloat(document.getElementById('iva').textContent.replace('€ ', '')) || 0;
+        const totaleValue = parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0;
+        
+        // BOX TOTALI - DESIGN MIGLIORATO
+        const boxY = currentY;
+        const boxWidth = 80;
+        const boxHeight = 40;
+        
+        // Sfondo del box totali
+        doc.setFillColor(248, 250, 255);
+        doc.rect(115, boxY, boxWidth, boxHeight, 'F');
+        
+        // Bordo del box
+        doc.setDrawColor(44, 90, 160);
+        doc.setLineWidth(0.5);
+        doc.rect(115, boxY, boxWidth, boxHeight);
+        
+        // DETTAGLIO TOTALI
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        
+        let lineY = boxY + 6;
+        
+        // Totale attrezzature
+        doc.text('Totale attrezzatura:', 118, lineY);
+        doc.text('€ ' + equipmentTotal.toFixed(2), 190, lineY, { align: 'right' });
+        lineY += 5;
+        
+        // Totale servizi (se presenti)
+        if (servicesTotal > 0) {
+            doc.text('Totale servizi:', 118, lineY);
+            doc.text('€ ' + servicesTotal.toFixed(2), 190, lineY, { align: 'right' });
+            lineY += 5;
+        }
+        
+        // Sconto (se presente)
+        if (discountPercent > 0) {
+            doc.text('Sconto (' + discountPercent.toFixed(1) + '%):', 118, lineY);
+            doc.text('-€ ' + discountAmount.toFixed(2), 190, lineY, { align: 'right' });
+            lineY += 5;
+        }
+        
+        // Totale imponibile
+        doc.text('Totale imponibile:', 118, lineY);
+        doc.text('€ ' + imponibileValue.toFixed(2), 190, lineY, { align: 'right' });
+        lineY += 5;
+        
+        // IVA
+        doc.text('IVA 22%:', 118, lineY);
+        doc.text('€ ' + ivaValue.toFixed(2), 190, lineY, { align: 'right' });
+        lineY += 5;
+        
+        // LINEA SEPARATRICE PRIMA DEL TOTALE FINALE
+        doc.setLineWidth(1);
+        doc.setDrawColor(44, 90, 160);
+        doc.line(118, lineY, 190, lineY);
+        lineY += 4;
+        
+        // TOTALE FINALE - EVIDENZIATO
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(44, 90, 160);
+        doc.text('TOTALE FINALE:', 118, lineY);
+        doc.text('€ ' + totaleValue.toFixed(2), 190, lineY, { align: 'right' });
+        
+        // NOTE FINALI (se necessarie)
+        const finalY = boxY + boxHeight + 15;
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text('• Il presente preventivo ha validità 30 giorni dalla data di emissione', 15, finalY);
+        doc.text('• I prezzi si intendono IVA esclusa', 15, finalY + 4);
+        doc.text('• Per l\'utilizzo dell\'attrezzatura è richiesta copertura assicurativa', 15, finalY + 8);
+        
+        // SALVATAGGIO FILE
+        const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_' + quoteNumber + '.pdf';
+        doc.save(fileName);
+        
+        showNotification('✅ PDF preventivo completo generato: ' + quoteNumber, 'success');
         
     } catch (error) {
         console.error('Errore generazione PDF:', error);
         showNotification('❌ Errore nella generazione del PDF: ' + error.message, 'error');
     }
 }
+    
 // TITOLO TABELLA - CENTRATO E EVIDENZIATO
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
@@ -2433,38 +2977,102 @@ function duplicateQuote() {
 }
 
 // INITIALIZATION
+// INITIALIZATION MIGLIORATA
 window.addEventListener('load', function() {
-    // Load saved configuration
+    console.log('🚀 Inizializzazione sistema Hubris Rental...');
+    
+    // Carica configurazione salvata
     const savedApiKey = localStorage.getItem('hubris_api_key');
     const savedSheetsId = localStorage.getItem('hubris_sheets_id');
     
-    if (savedApiKey) CONFIG.API_KEY = savedApiKey;
-    if (savedSheetsId) CONFIG.SHEETS_ID = savedSheetsId;
+    if (savedApiKey && savedApiKey.trim()) {
+        CONFIG.API_KEY = savedApiKey.trim();
+        console.log('🔑 API Key caricata da localStorage');
+    }
     
+    if (savedSheetsId && savedSheetsId.trim()) {
+        CONFIG.SHEETS_ID = savedSheetsId.trim();
+        console.log('📊 Sheets ID caricato da localStorage');
+    }
+    
+    // Log configurazione (senza esporre API key completa)
+    console.log('⚙️ Configurazione:', {
+        hasApiKey: !!CONFIG.API_KEY,
+        apiKeyLength: CONFIG.API_KEY ? CONFIG.API_KEY.length : 0,
+        sheetsId: CONFIG.SHEETS_ID ? CONFIG.SHEETS_ID.substring(0, 10) + '...' : 'non impostato'
+    });
+    
+    // Carica sempre i preventivi da localStorage prima di tutto
+    loadQuotesFromSheets();
+    
+    // Inizializza Google API solo se configurato
     if (CONFIG.API_KEY && CONFIG.SHEETS_ID) {
-        initializeGoogleAPI();
+        console.log('🔄 Configurazione completa, inizializzazione Google API...');
+        // Ritardo per dare tempo al DOM di caricarsi completamente
+        setTimeout(() => {
+            initializeGoogleAPI();
+        }, 1000);
     } else {
+        console.log('⚙️ Configurazione incompleta, modalità offline');
         updateConnectionStatus('offline', 'Configurazione richiesta');
         showNotification('⚙️ Clicca su "Config" per configurare le API Google Sheets', 'warning');
     }
     
-    // Load quotes from localStorage immediately
-    loadQuotesFromSheets();
-    
-    // Auto-sync every 5 minutes if connected
+    // Auto-sync every 10 minutes (ridotto per evitare troppi tentativi)
     setInterval(() => {
-        if (isConnected) {
-            loadQuotesFromSheets();
+        if (isConnected && gapi_loaded) {
+            console.log('🔄 Auto-sync programmato...');
+            loadDatabaseFromSheets();
             updateSyncTime();
         }
-    }, 300000);
+    }, 600000); // 10 minuti invece di 5
+    
+    console.log('✅ Inizializzazione completata');
 });
 
 // Global error handler
+// GESTIONE ERRORI GLOBALE MIGLIORATA
 window.addEventListener('error', function(e) {
-    console.error('Errore globale:', e.error);
-    showNotification('❌ Si è verificato un errore. Controlla la console.', 'error');
+    console.error('❌ Errore globale:', e.error);
+    console.error('📍 File:', e.filename, 'Linea:', e.lineno);
+    
+    // Errori specifici Google API
+    if (e.error && e.error.message) {
+        if (e.error.message.includes('gapi')) {
+            showNotification('⚠️ Errore Google API - ricaricare la pagina', 'warning');
+        } else if (e.error.message.includes('jsPDF')) {
+            showNotification('⚠️ Errore generazione PDF', 'warning');
+        } else {
+            showNotification('❌ Errore del sistema. Verifica console.', 'error');
+        }
+    }
 });
+
+// Gestione errori promesse non catturate
+window.addEventListener('unhandledrejection', function(e) {
+    console.error('❌ Promise rejection non gestita:', e.reason);
+    
+    // Errori API Google Sheets specifici
+    if (e.reason && e.reason.message) {
+        if (e.reason.message.includes('PERMISSION_DENIED')) {
+            showNotification('❌ Accesso negato a Google Sheets', 'error');
+        } else if (e.reason.message.includes('NOT_FOUND')) {
+            showNotification('❌ Google Sheet non trovato', 'error');
+        } else if (e.reason.message.includes('API_KEY_INVALID')) {
+            showNotification('❌ API Key non valida', 'error');
+        }
+    }
+    
+    e.preventDefault(); // Previene la stampa dell'errore in console
+});
+
+// Verifica periodica dello stato delle API
+setInterval(() => {
+    if (CONFIG.API_KEY && CONFIG.SHEETS_ID && !isConnected) {
+        console.log('🔄 Tentativo riconnessione automatica...');
+        initializeGoogleAPI();
+    }
+}, 30000); // Ogni 30 secondi
 
 // Prevent accidental page reload
 window.addEventListener('beforeunload', function(e) {
