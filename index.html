@@ -911,8 +911,24 @@ function updateDbStats() {
     savedQuotes.forEach(quote => {
         const div = document.createElement('div');
         div.className = 'quote-card';
-        div.innerHTML = '<div class="quote-title">' + quote.name + '</div><div class="quote-meta"><strong>Cliente:</strong> ' + quote.cliente + (quote.clientePiva ? '<br><strong>P.IVA:</strong> ' + quote.clientePiva : '') + '<br><strong>Durata:</strong> ' + quote.durata + ' giorni<br><strong>Totale:</strong> € ' + quote.total.toFixed(2) + '<br><strong>Creato:</strong> ' + quote.createdAt + '</div><div style="margin-top: 15px;"><span class="status-badge status-' + quote.status + '">' + (quote.status === 'draft' ? 'Bozza' : quote.status === 'sent' ? 'Inviato' : 'Confermato') + '</span><div style="margin-top: 10px;"><button class="btn btn-primary" onclick="loadQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📂</button>'<button class="btn btn-info" onclick="generateQuotePDF(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button>' +
-'<button class="btn btn-warning" onclick="generateDDTFromQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🚛</button>'<button class="btn btn-warning" onclick="duplicateQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button><button class="btn btn-danger" onclick="deleteQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🗑️</button></div></div>';
+        div.innerHTML = '<div class="quote-title">' + quote.name + '</div>' +
+                       '<div class="quote-meta">' +
+                       '<strong>Cliente:</strong> ' + quote.cliente + 
+                       (quote.clientePiva ? '<br><strong>P.IVA:</strong> ' + quote.clientePiva : '') + 
+                       '<br><strong>Durata:</strong> ' + quote.durata + ' giorni' +
+                       '<br><strong>Totale:</strong> € ' + quote.total.toFixed(2) + 
+                       '<br><strong>Creato:</strong> ' + quote.createdAt + '</div>' +
+                       '<div style="margin-top: 15px;">' +
+                       '<span class="status-badge status-' + quote.status + '">' + 
+                       (quote.status === 'draft' ? 'Bozza' : quote.status === 'sent' ? 'Inviato' : 'Confermato') + 
+                       '</span>' +
+                       '<div style="margin-top: 10px;">' +
+                       '<button class="btn btn-primary" onclick="loadQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📂</button> ' +
+                       '<button class="btn btn-info" onclick="generateQuotePDF(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button> ' +
+                       '<button class="btn btn-warning" onclick="generateDDTFromQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🚛</button> ' +
+                       '<button class="btn btn-warning" onclick="duplicateQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button> ' +
+                       '<button class="btn btn-danger" onclick="deleteQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🗑️</button>' +
+                       '</div></div>';
         container.appendChild(div);
     });
 }
