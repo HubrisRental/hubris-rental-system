@@ -240,10 +240,11 @@
             <button class="btn btn-info" onclick="addServiceRow()">+ Servizio</button>
         </div>
         <div class="equipment-section">
-           <div class="equipment-header">
+         <div class="equipment-header">
     <h3>Lista Attrezzature e Servizi</h3>
     <div>
-        <button class="btn btn-info" onclick="generatePDF()">📄 PDF</button>
+        <button class="btn btn-info" onclick="generatePDF()">📄 Preventivo</button>
+        <button class="btn btn-primary" onclick="generateWord()">📝 Word</button>
         <button class="btn btn-success" onclick="generateNoPricesQuote()">📋 Senza Prezzi</button>
         <button class="btn btn-warning" onclick="generateDDT()">🚛 DDT</button>
         <button class="btn btn-warning" onclick="generateInsurance()">🛡️ Assicurazione</button>
@@ -1768,7 +1769,291 @@ function generatePDF() {
         showNotification('❌ Errore nella generazione del PDF: ' + error.message, 'error');
     }
 }
+
+    function generateWord() {
+    const quoteName = document.getElementById('quoteName').value || 'Preventivo';
+    const cliente = document.getElementById('cliente').value || 'Cliente';
+    const clientePiva = document.getElementById('clientePiva').value || '';
+    const contatti = document.getElementById('contatti').value || '';
+    const carico = document.getElementById('carico').value || '';
+    const scarico = document.getElementById('scarico').value || '';
+    const durata = document.getElementById('durata').value || '1';
+    const quoteNumber = generateQuoteNumber();
+    
+    // Prepara i dati delle attrezzature
+    let equipmentHTML = '';
+    let servicesHTML = '';
+    let equipmentTotal = 0;
+    let servicesTotal = 0;
+    
+    document.querySelectorAll('[id^="row-"]').forEach(row => {
+        const rowId = row.id.split('-')[1];
         
+        if (row.classList.contains('service-row')) {
+            const serviceName = document.getElementById('service-name-' + rowId)?.value || '';
+            const serviceNotes = document.getElementById('service-notes-' + rowId)?.value || '';
+            const quantity = document.getElementById('qty-' + rowId)?.value || '';
+            const price = parseFloat(document.getElementById('service-price-' + rowId)?.value || '0');
+            const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
+            
+            if (serviceName) {
+                servicesHTML += `
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">Servizi</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${serviceName}${serviceNotes ? '<br>' + serviceNotes : ''}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${quantity}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">€ ${price.toFixed(2)}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">€ ${total.toFixed(2)}</td>
+                    </tr>
+                `;
+                servicesTotal += total;
+            }
+        } else {
+            const category = document.getElementById('category-' + rowId)?.value || '';
+            const equipment = document.getElementById('equipment-' + rowId)?.value || '';
+            const quantity = document.getElementById('qty-' + rowId)?.value || '';
+            const priceText = document.getElementById('price-' + rowId)?.textContent || '€ 0.00';
+            const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
+            const kitInfo = document.getElementById('kit-' + rowId)?.textContent || '';
+            
+            if (category && equipment) {
+                equipmentHTML += `
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${category}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${equipment}${kitInfo ? '<br><small>' + kitInfo + '</small>' : ''}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${quantity}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${priceText}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">€ ${total.toFixed(2)}</td>
+                    </tr>
+                `;
+                equipmentTotal += total;
+            }
+        }
+    });
+    
+    // Calcola totali
+    const subtotalValue = parseFloat(document.getElementById('subtotale').textContent.replace('€ ', '')) || 0;
+    const discountPercent = parseFloat(document.getElementById('sconto').value) || 0;
+    const discountAmount = parseFloat(document.getElementById('sconto-amount').textContent.replace('€ ', '')) || 0;
+    const imponibileValue = parseFloat(document.getElementById('imponibile').textContent.replace('€ ', '')) || 0;
+    const ivaValue = parseFloat(document.getElementById('iva').textContent.replace('€ ', '')) || 0;
+    const totaleValue = parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0;
+    
+    // Genera HTML completo
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Preventivo ${quoteNumber} - ${cliente}</title>
+    <style>
+        @page { margin: 2cm; }
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333;
+            max-width: 21cm;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: start;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #2c5aa0;
+            padding-bottom: 20px;
+        }
+        .logo-section { display: flex; align-items: center; gap: 20px; }
+        .logo { width: 80px; height: 80px; }
+        .company-info h1 { color: #2c5aa0; margin: 0; }
+        .quote-info { text-align: right; }
+        .quote-info h2 { color: #2c5aa0; margin: 0; }
+        .info-boxes { 
+            display: flex; 
+            gap: 20px; 
+            margin-bottom: 30px;
+        }
+        .info-box {
+            flex: 1;
+            background: #f8f9ff;
+            border: 1px solid #2c5aa0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .info-box h3 {
+            color: #2c5aa0;
+            margin-top: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th {
+            background: #2c5aa0;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+        .totals {
+            margin-left: auto;
+            width: 300px;
+            margin-top: 20px;
+        }
+        .totals-box {
+            background: #f8f9ff;
+            border: 1px solid #2c5aa0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .total-final {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c5aa0;
+            border-top: 2px solid #2c5aa0;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .notes {
+            margin-top: 40px;
+            font-size: 0.9em;
+            color: #666;
+            line-height: 1.4;
+        }
+        .service-header {
+            background: #ff9800;
+            color: white;
+            padding: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo-section">
+            <img src="https://i.imgur.com/ABMgyI8.png" alt="Logo" class="logo">
+            <div class="company-info">
+                <h1>HUBRIS PICTURES S.R.L.</h1>
+                <p style="margin: 5px 0;">P.IVA: 09542051215</p>
+                <p style="margin: 5px 0;">PEC: hubrispictures@pec.it | Tel: +39 081 18893796 / +39 348 6901218</p>
+                <p style="margin: 5px 0;">Indirizzo: Piazza Vanvitelli, 5, 80127 Napoli NA</p>
+                <p style="margin: 5px 0;">Email: info@hubrispictures.com</p>
+            </div>
+        </div>
+        <div class="quote-info">
+            <h2>PREVENTIVO</h2>
+            <p><strong>N. ${quoteNumber}</strong></p>
+            <p>Data: ${new Date().toLocaleDateString('it-IT')}</p>
+        </div>
+    </div>
+
+    <div class="info-boxes">
+        <div class="info-box">
+            <h3>DESTINATARIO:</h3>
+            <p><strong>${cliente}</strong></p>
+            ${clientePiva ? '<p>P.IVA: ' + clientePiva + '</p>' : ''}
+            ${contatti ? '<p>Tel: ' + contatti + '</p>' : ''}
+        </div>
+        <div class="info-box">
+            <h3>PERIODO NOLEGGIO:</h3>
+            <p>Carico: ${carico || 'Da definire'}</p>
+            <p>Scarico: ${scarico || 'Da definire'}</p>
+            <p>Durata: ${durata} giorni</p>
+        </div>
+    </div>
+
+    <h2 style="text-align: center; color: #2c5aa0;">DETTAGLIO ATTREZZATURE E SERVIZI</h2>
+
+    ${equipmentHTML ? `
+    <table>
+        <thead>
+            <tr>
+                <th>Categoria</th>
+                <th>Articolo</th>
+                <th style="text-align: center;">Qtà</th>
+                <th style="text-align: right;">Prezzo Unit.</th>
+                <th style="text-align: right;">Totale</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${equipmentHTML}
+        </tbody>
+    </table>
+    ` : ''}
+
+    ${servicesHTML ? `
+    <div class="service-header">SERVIZI</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Categoria</th>
+                <th>Servizio</th>
+                <th style="text-align: center;">Qtà</th>
+                <th style="text-align: right;">Prezzo Unit.</th>
+                <th style="text-align: right;">Totale</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${servicesHTML}
+        </tbody>
+    </table>
+    ` : ''}
+
+    <div class="totals">
+        <div class="totals-box">
+            <div class="total-line">
+                <span>Subtotale:</span>
+                <span>€ ${subtotalValue.toFixed(2)}</span>
+            </div>
+            ${discountPercent > 0 ? `
+            <div class="total-line">
+                <span>Sconto (${discountPercent.toFixed(1)}%):</span>
+                <span>-€ ${discountAmount.toFixed(2)}</span>
+            </div>
+            ` : ''}
+            <div class="total-line">
+                <span>Imponibile:</span>
+                <span>€ ${imponibileValue.toFixed(2)}</span>
+            </div>
+            <div class="total-line">
+                <span>IVA 22%:</span>
+                <span>€ ${ivaValue.toFixed(2)}</span>
+            </div>
+            <div class="total-line total-final">
+                <span>TOTALE FINALE:</span>
+                <span>€ ${totaleValue.toFixed(2)}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="notes">
+        <p>La società emette fattura al momento del ritiro materiale non si accettano dilazioni di pagamento che dovrà essere contestuale al RITIRO delle attrezzature.</p>
+        <p>Ritiro e riconsegna a Vostra cura presso nostra sede. Il materiale non reso verrà addebitato al prezzo di listino della casa costruttrice. Eventuali danneggiamenti saranno valutati al momento della riconsegna ed addebitati per il loro valore.</p>
+        <p>Il materiale eventualmente difettoso verrà riparato o sostituito presso la nostra sede.</p>
+        <p>L'eventuale smarrimento dei MATERIALI, anche al fine di scongiurare una illecita utilizzazione dei medesimi, dovrà essere tempestivamente denunciato presso l'Autorità di Pubblica Sicurezza più vicina e quindi comunicato per iscritto.</p>
+    </div>
+</body>
+</html>
+    `;
+    
+    // Crea e scarica il file
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = quoteName.replace(/[^a-z0-9]/gi, '_') + '_' + quoteNumber + '.html';
+    link.click();
+    
+    showNotification('✅ Documento Word generato! Aprilo con Microsoft Word.', 'success');
+}
+    
 function generateNoPricesQuote() {
     const quoteName = document.getElementById('quoteName').value || 'Preventivo';
     const cliente = document.getElementById('cliente').value || 'Cliente';
