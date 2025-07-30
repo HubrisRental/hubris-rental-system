@@ -100,6 +100,72 @@
         .status-sent { background: #e8f5e8; color: #4caf50; }
         .status-confirmed { background: #e3f2fd; color: #2196f3; }
         @media (max-width: 768px) { .nav-content { flex-direction: column; gap: 10px; } .container { margin: 10px; border-radius: 15px; } .tab-content { padding: 20px; } .controls-grid { grid-template-columns: 1fr; gap: 10px; } .form-grid { grid-template-columns: 1fr; } .quote-controls { grid-template-columns: 1fr; gap: 10px; } .data-table { font-size: 12px; } .data-table th, .data-table td { padding: 8px 6px; } .quotes-grid { grid-template-columns: 1fr; } }
+    /* Drag & Drop styles */
+.equipment-row.dragging { opacity: 0.5; }
+.equipment-row.drag-over { border-top: 3px solid #2c5aa0; }
+.drag-handle { cursor: move; padding: 5px; color: #666; }
+.drag-handle:hover { color: #2c5aa0; }
+.move-buttons { display: flex; flex-direction: column; gap: 2px; }
+.move-btn { padding: 2px 6px; font-size: 10px; background: #f0f0f0; border: 1px solid #ddd; cursor: pointer; }
+.move-btn:hover { background: #e0e0e0; }
+
+/* Select with search */
+.select-search-wrapper { position: relative; }
+.select-search { 
+    position: absolute; 
+    top: 100%; 
+    left: 0; 
+    right: 0; 
+    background: white; 
+    border: 2px solid #2c5aa0; 
+    border-radius: 8px; 
+    max-height: 200px; 
+    overflow-y: auto; 
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+.select-search.active { display: block; }
+.select-search-input { 
+    width: 100%; 
+    padding: 8px; 
+    border: none; 
+    border-bottom: 1px solid #eee;
+    outline: none;
+}
+.select-search-item { 
+    padding: 8px 12px; 
+    cursor: pointer; 
+    font-size: 14px;
+}
+.select-search-item:hover { background: #f0f4ff; }
+.select-search-item.selected { background: #e3f2fd; }
+.category-label { 
+    font-size: 11px; 
+    color: #666; 
+    font-weight: bold; 
+    text-transform: uppercase; 
+    margin-left: 5px;
+}
+
+/* Editable fields */
+.editable-input {
+    border: 1px dashed transparent;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: transparent;
+    width: 100%;
+    text-align: inherit;
+}
+.editable-input:hover {
+    border-color: #ddd;
+    background: #f8f9ff;
+}
+.editable-input:focus {
+    border-color: #2c5aa0;
+    background: white;
+    outline: none;
+}
     </style>
 </head>
 <body>
@@ -174,8 +240,12 @@
                 </thead>
                 <tbody id="databaseBody">
                     <tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">Configura le API per caricare il database...</td></tr>
-                </tbody>
+               </tbody>
             </table>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: center; margin: 20px 0;">
+            <button class="btn btn-primary" onclick="addEquipmentRow()">+ Attrezzatura</button>
+            <button class="btn btn-info" onclick="addServiceRow()">+ Servizio</button>
         </div>
     </div>
 
@@ -196,19 +266,27 @@
                 <button class="btn btn-danger" onclick="resetQuote()">🔄 Reset</button>
             </div>
         </div>
-        <div class="form-grid">
-            <div class="form-group">
-                <label class="form-label">Cliente</label>
-                <input type="text" class="form-input" id="cliente" placeholder="Nome del cliente">
-            </div>
-            <div class="form-group">
-                <label class="form-label">P.IVA Cliente</label>
-                <input type="text" class="form-input" id="clientePiva" placeholder="Partita IVA del cliente">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Contatti</label>
-                <input type="text" class="form-input" id="contatti" placeholder="Telefono/Email">
-            </div>
+       <div class="form-grid">
+    <div class="form-group">
+        <label class="form-label">Cliente</label>
+        <input type="text" class="form-input" id="cliente" placeholder="Nome del cliente">
+    </div>
+    <div class="form-group">
+        <label class="form-label">P.IVA Cliente</label>
+        <input type="text" class="form-input" id="clientePiva" placeholder="Partita IVA del cliente">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Via/Indirizzo</label>
+        <input type="text" class="form-input" id="clienteVia" placeholder="Via/Indirizzo del cliente">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Codice Univoco</label>
+        <input type="text" class="form-input" id="codiceUnivoco" placeholder="Codice SDI/PEC">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Contatti</label>
+        <input type="text" class="form-input" id="contatti" placeholder="Telefono/Email">
+    </div>
             <div class="form-group">
                 <label class="form-label">Data Carico</label>
                 <input type="date" class="form-input" id="carico">
@@ -236,8 +314,6 @@
                 </select>
             </div>
             <div></div>
-            <button class="btn btn-primary" onclick="addEquipmentRow()">+ Attrezzatura</button>
-            <button class="btn btn-info" onclick="addServiceRow()">+ Servizio</button>
         </div>
         <div class="equipment-section">
          <div class="equipment-header">
@@ -1004,11 +1080,238 @@ function addEquipmentRow() {
     const row = document.createElement('tr');
     row.className = 'equipment-row';
     row.id = 'row-' + rowCounter;
+    row.draggable = true;
     row.style.background = '#f8f9ff';
-    row.innerHTML = '<td><select class="form-input" onchange="updateEquipmentOptions(' + rowCounter + ')" id="category-' + rowCounter + '" style="width: 100%;"><option value="">Seleziona categoria...</option>' + Object.keys(equipmentDatabase).map(cat => '<option value="' + cat + '">' + cat + '</option>').join('') + '</select></td><td><select class="form-input" onchange="updateRowData(' + rowCounter + ')" id="equipment-' + rowCounter + '" style="width: 100%;" disabled><option value="">Prima seleziona categoria</option></select><div style="font-size: 11px; color: #666; margin-top: 5px;" id="kit-' + rowCounter + '"></div></td><td><input type="number" class="form-input" value="1" min="1" onchange="updateRowTotal(' + rowCounter + ')" id="qty-' + rowCounter + '" style="width: 100%; text-align: center;"></td><td style="text-align: right; font-weight: bold; color: #2e7d32;" id="price-' + rowCounter + '">€ 0.00</td><td style="text-align: right; font-weight: bold; color: #2e7d32;" id="total-' + rowCounter + '">€ 0.00</td><td><button class="btn btn-danger" onclick="removeRow(' + rowCounter + ')" style="padding: 6px 12px; font-size: 12px;">✕</button></td>';
+    
+    row.innerHTML = `
+        <td style="width: 40px;">
+            <span class="drag-handle">☰</span>
+            <div class="move-buttons">
+                <button class="move-btn" onclick="moveRow(${rowCounter}, -1)">↑</button>
+                <button class="move-btn" onclick="moveRow(${rowCounter}, 1)">↓</button>
+            </div>
+        </td>
+        <td>
+            <div class="select-search-wrapper">
+                <input type="text" class="form-input" 
+                    placeholder="Cerca categoria..." 
+                    id="search-cat-${rowCounter}"
+                    onclick="toggleSearchDropdown(${rowCounter}, 'category')"
+                    onkeyup="filterSearchDropdown(${rowCounter}, 'category')"
+                    autocomplete="off">
+                <div class="select-search" id="dropdown-cat-${rowCounter}">
+                    <input type="text" class="select-search-input" 
+                        placeholder="Digita per cercare..." 
+                        onkeyup="filterSearchDropdown(${rowCounter}, 'category')">
+                    <div id="options-cat-${rowCounter}">
+                        ${Object.keys(equipmentDatabase).map(cat => 
+                            `<div class="select-search-item" onclick="selectCategory(${rowCounter}, '${cat}')">${cat}</div>`
+                        ).join('')}
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" id="category-${rowCounter}">
+        </td>
+        <td>
+            <div class="select-search-wrapper">
+                <input type="text" class="form-input" 
+                    placeholder="Cerca attrezzatura..." 
+                    id="search-eq-${rowCounter}"
+                    onclick="toggleSearchDropdown(${rowCounter}, 'equipment')"
+                    onkeyup="filterSearchDropdown(${rowCounter}, 'equipment')"
+                    autocomplete="off"
+                    disabled>
+                <div class="select-search" id="dropdown-eq-${rowCounter}">
+                    <input type="text" class="select-search-input" 
+                        placeholder="Digita per cercare..." 
+                        onkeyup="filterSearchDropdown(${rowCounter}, 'equipment')">
+                    <div id="options-eq-${rowCounter}"></div>
+                </div>
+            </div>
+            <input type="hidden" id="equipment-${rowCounter}">
+            <input type="text" class="editable-input" 
+                id="kit-${rowCounter}" 
+                placeholder="Kit/Note personalizzate..." 
+                style="margin-top: 5px; font-size: 12px; color: #666;">
+        </td>
+        <td>
+            <input type="number" class="form-input" value="1" min="1" 
+                onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" 
+                style="width: 100%; text-align: center;">
+        </td>
+        <td>
+            <input type="text" class="editable-input" 
+                id="price-${rowCounter}" 
+                value="€ 0.00" 
+                onchange="updateCustomPrice(${rowCounter})"
+                style="text-align: right; font-weight: bold; color: #2e7d32;">
+        </td>
+        <td style="text-align: right; font-weight: bold; color: #2e7d32;" id="total-${rowCounter}">€ 0.00</td>
+        <td>
+            <button class="btn btn-danger" onclick="removeRow(${rowCounter})" 
+                style="padding: 6px 12px; font-size: 12px;">✕</button>
+        </td>
+    `;
+    
     tbody.appendChild(row);
+    
+    // Setup drag & drop
+    setupDragAndDrop(row);
+    
+    // Close dropdowns on click outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.select-search-wrapper')) {
+            document.querySelectorAll('.select-search').forEach(d => d.classList.remove('active'));
+        }
+    });
 }
 
+    // DRAG & DROP FUNCTIONS
+function setupDragAndDrop(row) {
+    row.addEventListener('dragstart', function(e) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+        this.classList.add('dragging');
+        window.draggedRow = this;
+    });
+    
+    row.addEventListener('dragend', function(e) {
+        this.classList.remove('dragging');
+        document.querySelectorAll('.drag-over').forEach(r => r.classList.remove('drag-over'));
+    });
+    
+    row.addEventListener('dragover', function(e) {
+        if (e.preventDefault) e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('drag-over');
+        return false;
+    });
+    
+    row.addEventListener('dragleave', function(e) {
+        this.classList.remove('drag-over');
+    });
+    
+    row.addEventListener('drop', function(e) {
+        if (e.stopPropagation) e.stopPropagation();
+        if (window.draggedRow !== this) {
+            this.parentNode.insertBefore(window.draggedRow, this.nextSibling);
+        }
+        return false;
+    });
+}
+
+// MOVE ROW FUNCTIONS
+function moveRow(rowId, direction) {
+    const row = document.getElementById('row-' + rowId);
+    if (!row) return;
+    
+    if (direction === -1 && row.previousElementSibling) {
+        row.parentNode.insertBefore(row, row.previousElementSibling);
+    } else if (direction === 1 && row.nextElementSibling) {
+        row.parentNode.insertBefore(row.nextElementSibling, row);
+    }
+}
+
+// SEARCH DROPDOWN FUNCTIONS
+function toggleSearchDropdown(rowId, type) {
+    const dropdown = document.getElementById(`dropdown-${type === 'category' ? 'cat' : 'eq'}-${rowId}`);
+    const wasActive = dropdown.classList.contains('active');
+    
+    // Close all dropdowns
+    document.querySelectorAll('.select-search').forEach(d => d.classList.remove('active'));
+    
+    // Toggle this dropdown
+    if (!wasActive) {
+        dropdown.classList.add('active');
+        dropdown.querySelector('.select-search-input').focus();
+    }
+}
+
+function filterSearchDropdown(rowId, type) {
+    const searchInput = event.target;
+    const searchTerm = searchInput.value.toLowerCase();
+    const optionsContainer = document.getElementById(`options-${type === 'category' ? 'cat' : 'eq'}-${rowId}`);
+    
+    if (type === 'category') {
+        const filtered = Object.keys(equipmentDatabase).filter(cat => 
+            cat.toLowerCase().includes(searchTerm)
+        );
+        
+        optionsContainer.innerHTML = filtered.map(cat => 
+            `<div class="select-search-item" onclick="selectCategory(${rowId}, '${cat}')">${cat}</div>`
+        ).join('');
+    } else {
+        const category = document.getElementById('category-' + rowId).value;
+        if (!category) return;
+        
+        const items = Object.keys(equipmentDatabase[category]);
+        const filtered = items.filter(item => 
+            item.toLowerCase().includes(searchTerm) || 
+            category.toLowerCase().includes(searchTerm)
+        );
+        
+        optionsContainer.innerHTML = filtered.map(item => 
+            `<div class="select-search-item" onclick="selectEquipment(${rowId}, '${item}')">
+                ${item} <span class="category-label">${category}</span>
+            </div>`
+        ).join('');
+    }
+}
+
+function selectCategory(rowId, category) {
+    document.getElementById('category-' + rowId).value = category;
+    document.getElementById('search-cat-' + rowId).value = category;
+    document.getElementById('dropdown-cat-' + rowId).classList.remove('active');
+    
+    // Enable equipment search
+    document.getElementById('search-eq-' + rowId).disabled = false;
+    document.getElementById('search-eq-' + rowId).placeholder = 'Cerca in ' + category + '...';
+    
+    // Populate equipment options
+    const items = Object.keys(equipmentDatabase[category]);
+    const optionsContainer = document.getElementById('options-eq-' + rowId);
+    optionsContainer.innerHTML = items.map(item => 
+        `<div class="select-search-item" onclick="selectEquipment(${rowId}, '${item}')">
+            ${item} <span class="category-label">${category}</span>
+        </div>`
+    ).join('');
+    
+    // Reset equipment selection
+    document.getElementById('equipment-' + rowId).value = '';
+    document.getElementById('search-eq-' + rowId).value = '';
+    document.getElementById('price-' + rowId).value = '€ 0.00';
+    document.getElementById('total-' + rowId).textContent = '€ 0.00';
+    updateTotals();
+}
+
+function selectEquipment(rowId, equipment) {
+    const category = document.getElementById('category-' + rowId).value;
+    document.getElementById('equipment-' + rowId).value = equipment;
+    document.getElementById('search-eq-' + rowId).value = equipment;
+    document.getElementById('dropdown-eq-' + rowId).classList.remove('active');
+    
+    if (category && equipment && equipmentDatabase[category][equipment]) {
+        const data = equipmentDatabase[category][equipment];
+        const duration = parseInt(document.getElementById('durata').value);
+        const price = calculatePrice(data.price1, data.price3, data.price7, duration);
+        document.getElementById('price-' + rowId).value = '€ ' + price.toFixed(2);
+        
+        // Set default kit info but keep it editable
+        if (data.kit && !document.getElementById('kit-' + rowId).value) {
+            document.getElementById('kit-' + rowId).value = data.kit;
+        }
+        
+        updateRowTotal(rowId);
+    }
+}
+
+function updateCustomPrice(rowId) {
+    const priceInput = document.getElementById('price-' + rowId);
+    let value = priceInput.value.replace('€', '').replace(',', '.').trim();
+    const price = parseFloat(value) || 0;
+    priceInput.value = '€ ' + price.toFixed(2);
+    updateRowTotal(rowId);
+}
 function updateEquipmentOptions(rowId) {
     const categorySelect = document.getElementById('category-' + rowId);
     const equipmentSelect = document.getElementById('equipment-' + rowId);
@@ -1065,11 +1368,10 @@ function updateRowTotal(rowId) {
     let price = 0;
     let quantity = parseInt(document.getElementById('qty-' + rowId).value) || 0;
     
-    // Check if it's a service row
     if (row.classList.contains('service-row')) {
         price = parseFloat(document.getElementById('service-price-' + rowId).value) || 0;
     } else {
-        const priceText = document.getElementById('price-' + rowId).textContent;
+        const priceText = document.getElementById('price-' + rowId).value;
         price = parseFloat(priceText.replace('€ ', '')) || 0;
     }
     
@@ -1083,7 +1385,17 @@ function updateAllPrices() {
     rows.forEach(row => {
         const rowId = row.id.split('-')[1];
         if (!row.classList.contains('service-row')) {
-            updateRowData(rowId);
+            // Ricalcola il prezzo basato sulla durata
+            const category = document.getElementById('category-' + rowId)?.value;
+            const equipment = document.getElementById('equipment-' + rowId)?.value;
+            
+            if (category && equipment && equipmentDatabase[category] && equipmentDatabase[category][equipment]) {
+                const data = equipmentDatabase[category][equipment];
+                const duration = parseInt(document.getElementById('durata').value);
+                const price = calculatePrice(data.price1, data.price3, data.price7, duration);
+                document.getElementById('price-' + rowId).value = '€ ' + price.toFixed(2);
+                updateRowTotal(rowId);
+            }
         }
     });
 }
@@ -1127,6 +1439,8 @@ function saveQuote() {
         name: quoteName,
         cliente: document.getElementById('cliente').value,
         clientePiva: document.getElementById('clientePiva').value,
+        clienteVia: document.getElementById('clienteVia').value,
+        codiceUnivoco: document.getElementById('codiceUnivoco').value,
         contatti: document.getElementById('contatti').value,
         carico: document.getElementById('carico').value,
         scarico: document.getElementById('scarico').value,
@@ -1191,6 +1505,8 @@ function loadQuoteById(quoteId) {
     document.getElementById('quoteName').value = quote.name || '';
     document.getElementById('cliente').value = quote.cliente || '';
     document.getElementById('clientePiva').value = quote.clientePiva || '';
+    document.getElementById('clienteVia').value = quote.clienteVia || '';
+    document.getElementById('codiceUnivoco').value = quote.codiceUnivoco || '';
     document.getElementById('contatti').value = quote.contatti || '';
     document.getElementById('carico').value = quote.carico || '';
     document.getElementById('scarico').value = quote.scarico || '';
@@ -1577,7 +1893,7 @@ function generatePDF() {
                 const category = document.getElementById('category-' + rowId)?.value || '';
                 const equipment = document.getElementById('equipment-' + rowId)?.value || '';
                 const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                const priceText = document.getElementById('price-' + rowId)?.textContent || '€ 0.00';
+                const priceText = document.getElementById('price-' + rowId)?.value || '€ 0.00';
                 const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
                 const kitInfo = document.getElementById('kit-' + rowId)?.textContent || '';
                 
