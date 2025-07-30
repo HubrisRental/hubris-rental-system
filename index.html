@@ -66,7 +66,7 @@
         .notification.info { background: #2196F3; }
         .notification.warning { background: #FF9800; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .table-container { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.08); max-height: 600px; overflow-y: auto; }
+        .table-container { background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); max-height: 600px; overflow-y: auto; }
         .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .data-table th { background: linear-gradient(135deg, #2c5aa0, #1a4480); color: white; padding: 15px 12px; text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 10; }
         .data-table td { padding: 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
@@ -266,6 +266,7 @@
                         <th>1 Settimana</th>
                         <th>Valore Assic.</th>
                         <th>Kit/Note</th>
+                        <th>Seriale</th>
                         <th>Azioni</th>
                     </tr>
                 </thead>
@@ -466,7 +467,7 @@ document.addEventListener('click', function(e) {
 let CONFIG = {
     API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
     SHEETS_ID: '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc',
-    DATABASE_RANGE: 'Database!A:G',
+    DATABASE_RANGE: 'Database!A:H',
     QUOTES_RANGE: 'Preventivi_Salvati!A:Z'
 };
 
@@ -856,6 +857,7 @@ function processEquipmentData(values) {
         const insurance = parseFloat(row[4]) || 0;
         const kit = (row[5] || '').toString().trim();
         const notes = (row[6] || '').toString().trim();
+        const serial = (row[7] || '').toString().trim(); 
         
         // Logica migliorata per identificare categorie vs articoli
         if (name) {
@@ -870,7 +872,7 @@ function processEquipmentData(values) {
             // È un articolo se ha almeno un prezzo E una categoria corrente
             else if (currentCategory && (price1 > 0 || price3 > 0 || price7 > 0)) {
                 equipmentDatabase[currentCategory][name] = {
-                    price1, price3, price7, insurance, kit, notes
+                    price1, price3, price7, insurance, kit, notes, serial
                 };
                 processedData.push({
                     category: currentCategory, 
@@ -975,7 +977,7 @@ function renderDatabase(data) {
     const tbody = document.getElementById('databaseBody');
     tbody.innerHTML = '';
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">Nessun dato disponibile. Configura le API per caricare il database.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #666;">Nessun dato disponibile. Configura le API per caricare il database.</td></tr>';
         return;
     }
     let currentCategory = '';
@@ -988,7 +990,7 @@ function renderDatabase(data) {
             currentCategory = item.category;
         }
         const row = document.createElement('tr');
-        row.innerHTML = '<td style="font-weight: 500;">' + item.name + '</td><td>€ ' + item.price1.toFixed(2) + '</td><td>€ ' + item.price3.toFixed(2) + '</td><td>€ ' + item.price7.toFixed(2) + '</td><td>€ ' + item.insurance.toLocaleString() + '</td><td style="font-size: 12px; color: #666; max-width: 200px;">' + item.kit + '</td><td><button class="btn btn-warning" onclick="editEquipment(\'' + item.category + '\', \'' + item.name + '\')" style="padding: 6px 12px; font-size: 12px;">✏️</button></td>';
+        row.innerHTML = '<td style="font-weight: 500;">' + item.name + '</td><td>€ ' + item.price1.toFixed(2) + '</td><td>€ ' + item.price3.toFixed(2) + '</td><td>€ ' + item.price7.toFixed(2) + '</td><td>€ ' + item.insurance.toLocaleString() + '</td><td style="font-size: 12px; color: #666; max-width: 200px;">' + item.kit + '</td>'<td style="font-size: 12px; color: #999;">' + (item.serial || '-') + '</td>' + <td><button class="btn btn-warning" onclick="editEquipment(\'' + item.category + '\', \'' + item.name + '\')" style="padding: 6px 12px; font-size: 12px;">✏️</button></td>';
         tbody.appendChild(row);
     });
 }
