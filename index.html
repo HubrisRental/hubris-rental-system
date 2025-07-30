@@ -133,6 +133,37 @@
     border-bottom: 1px solid #eee;
     outline: none;
 }
+        /* Fix dropdown visibility */
+.equipment-section {
+    position: relative;
+    overflow: visible !important;
+}
+
+.table-container {
+    overflow: visible !important;
+}
+
+.select-search {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #2c5aa0;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    margin-top: 2px;
+}
+
+/* Ensure dropdowns are visible even outside container */
+.select-search-wrapper {
+    position: relative;
+    z-index: 100;
+}
 .select-search-item { 
     padding: 8px 12px; 
     cursor: pointer; 
@@ -329,13 +360,14 @@
             <table class="data-table">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">☰</th>
                         <th style="width: 180px;">Categoria</th>
-                        <th style="width: 220px;">Attrezzatura/Servizio</th>
-                        <th style="width: 80px;">Qtà</th>
-                        <th style="width: 120px;">Prezzo Unit.</th>
-                        <th style="width: 120px;">Totale</th>
+                        <th style="width: 280px;">Attrezzatura/Servizio</th>
+                         <th style="width: 60px;">Qtà</th>
+                        <th style="width: 100px;">Prezzo Unit.</th>
+                        <th style="width: 100px;">Totale</th>
                         <th style="width: 80px;">Azioni</th>
-                    </tr>
+                     </tr>
                 </thead>
                 <tbody id="equipmentRows"></tbody>
             </table>
@@ -1090,11 +1122,18 @@ function addEquipmentRow() {
     row.style.background = '#f8f9ff';
     
     row.innerHTML = `
-        <td style="width: 40px;">
-            <span class="drag-handle">☰</span>
-            <div class="move-buttons">
-                <button class="move-btn" onclick="moveRow(${rowCounter}, -1)">↑</button>
-                <button class="move-btn" onclick="moveRow(${rowCounter}, 1)">↓</button>
+    <td style="width: 40px;">
+        <span class="drag-handle">☰</span>
+        <div class="move-buttons">
+            <button class="move-btn" onclick="moveRow(${rowCounter}, -1)">↑</button>
+            <button class="move-btn" onclick="moveRow(${rowCounter}, 1)">↓</button>
+        </div>
+    </td>
+    <td style="width: 180px;">
+        ...
+    </td>
+    <td style="width: 280px;">
+        ...
             </div>
         </td>
         <td>
@@ -1135,10 +1174,12 @@ function addEquipmentRow() {
                 </div>
             </div>
             <input type="hidden" id="equipment-${rowCounter}">
-            <input type="text" class="editable-input" 
-                id="kit-${rowCounter}" 
-                placeholder="Kit/Note personalizzate..." 
-                style="margin-top: 5px; font-size: 12px; color: #666;">
+            <textarea class="editable-input" 
+    id="kit-${rowCounter}" 
+    placeholder="Kit/Note personalizzate..." 
+    style="margin-top: 5px; font-size: 12px; color: #666; width: 100%; min-height: 30px; resize: vertical;"
+    onfocus="this.style.height='80px'" 
+    onblur="if(!this.value) this.style.height='30px'"></textarea>
         </td>
         <td>
             <input type="number" class="form-input" value="1" min="1" 
