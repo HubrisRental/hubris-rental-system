@@ -2068,86 +2068,95 @@ function generateNoPricesQuote() {
         const doc = new jsPDF();
         const quoteNumber = generateQuoteNumber();
         
-        // HEADER IDENTICO AL PREVENTIVO COMPLETO
+        // SETUP FONT
+        doc.setFont('helvetica'); // Nota: jsPDF non supporta Trebuchet MS nativamente
+        
+        // HEADER CON LOGO PIÙ GRANDE E LAYOUT MIGLIORATO
         try {
-            doc.addImage('https://i.imgur.com/ABMgyI8.png', 'PNG', 15, 15, 25, 25);
+            doc.addImage('https://i.imgur.com/ABMgyI8.png', 'PNG', 15, 10, 35, 35);
         } catch (e) {
             doc.setFillColor(44, 90, 160);
-            doc.circle(27.5, 27.5, 12, 'F');
+            doc.circle(32.5, 27.5, 17, 'F');
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.text('HP', 27.5, 31, { align: 'center' });
+            doc.setFontSize(18);
+            doc.text('HP', 32.5, 32, { align: 'center' });
         }
         
-        // INTESTAZIONE AZIENDA
-        doc.setFontSize(20);
+        // INTESTAZIONE AZIENDA - ALLINEATA CON LOGO
+        doc.setFontSize(22);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('HUBRIS PICTURES S.R.L.', 50, 25);
+        doc.text('HUBRIS PICTURES S.R.L.', 55, 22);
         
+        // DATI AZIENDA - ALLINEATI E SPAZIATI MEGLIO
         doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        doc.text('P.IVA: 09542051215', 50, 32);
-        doc.text('PEC: hubrispictures@pec.it | Tel: +39 081 18893796 / +39 348 6901218', 50, 37);
-        doc.text('Indirizzo: Piazza Vanvitelli, 5, 80127 Napoli NA', 50, 42);
-        doc.text('Email: info@hubrispictures.com', 50, 47);
+        doc.text('P.IVA: 09542051215', 55, 29);
+        doc.text('PEC: hubrispictures@pec.it | Tel: +39 081 18893796 / +39 348 6901218', 55, 34);
+        doc.text('Indirizzo: Piazza Vanvitelli, 5, 80127 Napoli NA', 55, 39);
+        doc.text('Email: info@hubrispictures.com', 55, 44);
         
-        // TITOLO SPECIFICO - SENZA PREZZI
-        doc.setFontSize(14);
+        // TITOLO - SOLO "PREVENTIVO"
+        doc.setFontSize(16);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('PREVENTIVO NO PREZZI', 150, 20);
-        doc.text('N. ' + quoteNumber, 150, 27);
+        doc.text('PREVENTIVO', 195, 15, { align: 'right' });
+        doc.text('N. ' + quoteNumber, 195, 23, { align: 'right' });
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 150, 34); // LINEA SEPARATRICE
-        doc.setDrawColor(44, 90, 160);
-        doc.setLineWidth(1);
-        doc.line(15, 55, 195, 55);
+        doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 195, 30, { align: 'right' });
         
-        // SEZIONI DESTINATARIO E PERIODO (identiche al preventivo completo)
+        // LINEA SEPARATRICE
+        doc.setDrawColor(44, 90, 160);
+        doc.setLineWidth(1.5);
+        doc.line(15, 50, 195, 50);
+        
+        // SEZIONE DESTINATARIO - PIÙ COMPATTA
         doc.setFillColor(248, 250, 255);
-        doc.rect(15, 65, 85, 30, 'F');
+        doc.rect(15, 55, 70, 28, 'F');
         doc.setDrawColor(44, 90, 160);
-        doc.rect(15, 65, 85, 30);
+        doc.rect(15, 55, 70, 28);
         
-        doc.setFontSize(11);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('DESTINATARIO:', 18, 73);
+        doc.text('DESTINATARIO:', 18, 62);
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        doc.text(cliente, 18, 80);
+        doc.setFontSize(9);
+        doc.text(cliente, 18, 68);
         if (clientePiva) {
-            doc.text('P.IVA: ' + clientePiva, 18, 86);
+            doc.text('P.IVA: ' + clientePiva, 18, 73);
         }
         if (contatti) {
-            doc.text('Tel: ' + contatti, 18, 92);
+            doc.text('Tel: ' + contatti, 18, 78);
         }
         
-        // PERIODO NOLEGGIO
+        // PERIODO NOLEGGIO - PIÙ COMPATTO
         doc.setFillColor(248, 250, 255);
-        doc.rect(110, 65, 85, 30, 'F');
+        doc.rect(125, 55, 70, 28, 'F');
         doc.setDrawColor(44, 90, 160);
-        doc.rect(110, 65, 85, 30);
+        doc.rect(125, 55, 70, 28);
         
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('PERIODO NOLEGGIO:', 113, 73);
+        doc.text('PERIODO NOLEGGIO:', 128, 62);
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        doc.text('Dal: ' + (carico || 'Da definire'), 113, 80);
-        doc.text('Al: ' + (scarico || 'Da definire'), 113, 86);
-        doc.text('Durata: ' + durata + ' giorni', 113, 92);
+        doc.setFontSize(9);
+        doc.text('Carico: ' + (carico || 'Da definire'), 128, 68);
+        doc.text('Scarico: ' + (scarico || 'Da definire'), 128, 73);
+        doc.text('Durata: ' + durata + ' giorni', 128, 78);
         
         // TITOLO TABELLA
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('LISTA ATTREZZATURE E SERVIZI', 105, 110, { align: 'center' });
+        doc.text('LISTA ATTREZZATURE E SERVIZI', 105, 95, { align: 'center' });
         
         // PREPARAZIONE DATI SENZA PREZZI
         const equipmentData = [];
@@ -2187,31 +2196,22 @@ function generateNoPricesQuote() {
         });
         
         // TABELLA ATTREZZATURE SENZA PREZZI
-        let currentY = 120;
+        let currentY = 105;
         
         if (equipmentData.length > 0) {
-            // HEADER ATTREZZATURE
-            doc.setFillColor(44, 90, 160);
-            doc.rect(15, currentY, 180, 8, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'bold');
-            doc.text('ATTREZZATURE', 105, currentY + 5, { align: 'center' });
-            currentY += 8;
-            
             doc.autoTable({
                 head: [['Categoria', 'Articolo', 'Qtà', 'Kit']],
                 body: equipmentData,
                 startY: currentY,
                 theme: 'grid',
                 headStyles: { 
-                    fillColor: [70, 130, 180],
+                    fillColor: [44, 90, 160],
                     textColor: [255, 255, 255],
                     fontStyle: 'bold',
-                    fontSize: 9
+                    fontSize: 11
                 },
                 bodyStyles: {
-                    fontSize: 8,
+                    fontSize: 10,
                     cellPadding: 3
                 },
                 columnStyles: {
@@ -2234,7 +2234,7 @@ function generateNoPricesQuote() {
             doc.setFillColor(255, 152, 0);
             doc.rect(15, currentY, 180, 8, 'F');
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(10);
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'bold');
             doc.text('SERVIZI', 105, currentY + 5, { align: 'center' });
             currentY += 8;
@@ -2248,10 +2248,10 @@ function generateNoPricesQuote() {
                     fillColor: [230, 126, 34],
                     textColor: [255, 255, 255],
                     fontStyle: 'bold',
-                    fontSize: 9
+                    fontSize: 11
                 },
                 bodyStyles: {
-                    fontSize: 8,
+                    fontSize: 10,
                     cellPadding: 3
                 },
                 columnStyles: {
@@ -2265,247 +2265,43 @@ function generateNoPricesQuote() {
                 }
             });
             
-            currentY = doc.lastAutoTable.finalY + 10;
+            currentY = doc.lastAutoTable.finalY + 15;
         }
         
-        // TOTALI FINALI (mantenuti per trasparenza)
+        // TOTALI FINALI (per trasparenza)
         const totaleValue = parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0;
         const imponibileValue = parseFloat(document.getElementById('imponibile').textContent.replace('€ ', '')) || 0;
         const ivaValue = parseFloat(document.getElementById('iva').textContent.replace('€ ', '')) || 0;
         
         // BOX TOTALI SEMPLIFICATO
         doc.setFillColor(248, 250, 255);
-        doc.rect(130, currentY, 65, 25, 'F');
+        doc.rect(130, currentY, 65, 30, 'F');
         doc.setDrawColor(44, 90, 160);
-        doc.rect(130, currentY, 65, 25);
+        doc.rect(130, currentY, 65, 30);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
         
-        doc.text('Totale imponibile:', 133, currentY + 8);
-        doc.text('€ ' + imponibileValue.toFixed(2), 190, currentY + 8, { align: 'right' });
+        doc.text('Totale imponibile:', 133, currentY + 10);
+        doc.text('€ ' + imponibileValue.toFixed(2), 190, currentY + 10, { align: 'right' });
         
-        doc.text('IVA 22%:', 133, currentY + 15);
-        doc.text('€ ' + ivaValue.toFixed(2), 190, currentY + 15, { align: 'right' });
+        doc.text('IVA 22%:', 133, currentY + 17);
+        doc.text('€ ' + ivaValue.toFixed(2), 190, currentY + 17, { align: 'right' });
         
         // LINEA E TOTALE FINALE
         doc.setLineWidth(1);
-        doc.line(133, currentY + 18, 190, currentY + 18);
+        doc.line(133, currentY + 20, 190, currentY + 20);
         
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
         doc.setTextColor(44, 90, 160);
-        doc.text('TOTALE FINALE:', 133, currentY + 24);
-        doc.text('€ ' + totaleValue.toFixed(2), 190, currentY + 24, { align: 'right' });
-        
-        // SALVATAGGIO
-        const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_SenzaPrezzi_' + quoteNumber + '.pdf';
-        doc.save(fileName);
-        
-        showNotification('✅ PDF senza prezzi generato: ' + quoteNumber, 'success');
-        
-    } catch (error) {
-        console.error('Errore generazione PDF senza prezzi:', error);
-        showNotification('❌ Errore nella generazione del PDF', 'error');
-    }
-} 
-function generateDDT() {
-    const quoteName = document.getElementById('quoteName').value || 'Trasporto';
-    const cliente = document.getElementById('cliente').value || 'Cliente';
-    const clientePiva = document.getElementById('clientePiva').value || '';
-    const contatti = document.getElementById('contatti').value || '';
-    const carico = document.getElementById('carico').value || '';
-    const scarico = document.getElementById('scarico').value || '';
-    
-    try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const ddtNumber = 'DDT-' + Date.now().toString().slice(-6);
-        
-        // HEADER CON LOGO PIÙ GRANDE E LAYOUT MIGLIORATO
-        try {
-            doc.addImage('https://i.imgur.com/ABMgyI8.png', 'PNG', 15, 10, 35, 35);
-        } catch (e) {
-            doc.setFillColor(44, 90, 160);
-            doc.circle(32.5, 27.5, 17, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.text('HP', 32.5, 32, { align: 'center' });
-        }
-        
-        // INTESTAZIONE AZIENDA - ALLINEATA CON LOGO
-        doc.setFontSize(22);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('HUBRIS PICTURES S.R.L.', 55, 22);
-        
-        // DATI AZIENDA - ALLINEATI E SPAZIATI MEGLIO
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.text('P.IVA: 09542051215', 55, 29);
-        doc.text('PEC: hubrispictures@pec.it | Tel: +39 081 18893796 / +39 348 6901218', 55, 34);
-        doc.text('Indirizzo: Piazza Vanvitelli, 5, 80127 Napoli NA', 55, 39);
-        doc.text('Email: info@hubrispictures.com', 55, 44);
-        
-        // TITOLO DDT - CAMBIATO IN "DDT"
-        doc.setFontSize(20);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('DDT', 195, 15, { align: 'right' });
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text('(D.P.R. 472/95 comma 3)', 195, 22, { align: 'right' });
-        doc.text('N. ' + ddtNumber, 195, 29, { align: 'right' });
-        doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 195, 36, { align: 'right' });
-        
-        // LINEA SEPARATRICE
-        doc.setDrawColor(44, 90, 160);
-        doc.setLineWidth(1.5);
-        doc.line(15, 50, 195, 50);
-        
-        // SEZIONE DESTINATARIO - PIÙ COMPATTA
-        doc.setFillColor(248, 250, 255);
-        doc.rect(15, 55, 70, 28, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(15, 55, 70, 28);
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('DESTINATARIO:', 18, 62);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.text(cliente, 18, 68);
-        if (clientePiva) {
-            doc.text('P.IVA: ' + clientePiva, 18, 73);
-        }
-        if (contatti) {
-            doc.text('Tel: ' + contatti, 18, 78);
-        }
-        
-        // CAUSALE TRASPORTO - PIÙ COMPATTA
-        doc.setFillColor(248, 250, 255);
-        doc.rect(125, 55, 70, 28, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(125, 55, 70, 28);
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('CAUSALE TRASPORTO:', 128, 62);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.text('Noleggio attrezzature', 128, 68);
-        doc.text('Data carico: ' + (carico || 'Da definire'), 128, 73);
-        doc.text('Data reso: ' + (scarico || 'Da definire'), 128, 78);
-        
-        // TITOLO TABELLA
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('BENI TRASPORTATI', 105, 95, { align: 'center' });
-        
-        // PREPARAZIONE DATI DDT
-        const ddtData = [];
-        
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
-            
-            if (row.classList.contains('service-row')) {
-                const serviceName = document.getElementById('service-name-' + rowId)?.value || '';
-                const serviceNotes = document.getElementById('service-notes-' + rowId)?.value || '';
-                const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                
-                if (serviceName) {
-                    ddtData.push([
-                        'Servizi',
-                        serviceName,
-                        quantity,
-                        serviceNotes || 'Servizio personalizzato'
-                    ]);
-                }
-            } else {
-                const category = document.getElementById('category-' + rowId)?.value || '';
-                const equipment = document.getElementById('equipment-' + rowId)?.value || '';
-                const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                const kitInfo = document.getElementById('kit-' + rowId)?.textContent || '';
-                
-                if (category && equipment) {
-                    ddtData.push([
-                        category,
-                        equipment,
-                        quantity,
-                        kitInfo || 'Kit standard'
-                    ]);
-                }
-            }
-        });
-        
-        // TABELLA DDT
-        if (ddtData.length > 0) {
-            doc.autoTable({
-                head: [['Categoria', 'Articolo', 'Qtà', 'Kit/Descrizione']],
-                body: ddtData,
-                startY: 105,
-                theme: 'grid',
-                headStyles: { 
-                    fillColor: [44, 90, 160],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    fontSize: 11
-                },
-                bodyStyles: {
-                    fontSize: 10,
-                    cellPadding: 3
-                },
-                columnStyles: {
-                    0: { cellWidth: 45 },
-                    1: { cellWidth: 80 },
-                    2: { cellWidth: 20, halign: 'center' },
-                    3: { cellWidth: 45 }
-                },
-                alternateRowStyles: {
-                    fillColor: [248, 250, 255]
-                }
-            });
-        }
-        
-        // FIRME E NOTE FINALI
-        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 160;
-        
-        // BOX FIRME
-        doc.setDrawColor(44, 90, 160);
-        doc.setLineWidth(0.5);
-        
-        // Firma Mittente
-        doc.rect(15, finalY, 85, 25);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(44, 90, 160);
-        doc.text('MITTENTE', 18, finalY + 8);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Firma e timbro:', 18, finalY + 15);
-        
-        // Firma Destinatario
-        doc.rect(110, finalY, 85, 25);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(44, 90, 160);
-        doc.text('DESTINATARIO', 113, finalY + 8);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Firma per ricevuta:', 113, finalY + 15);
+        doc.text('TOTALE FINALE:', 133, currentY + 27);
+        doc.text('€ ' + totaleValue.toFixed(2), 190, currentY + 27, { align: 'right' });
         
         // NOTE FINALI AGGIORNATE
+        const finalY = currentY + 40;
+        
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(100, 100, 100);
@@ -2522,21 +2318,21 @@ function generateDDT() {
             "più vicina e quindi comunicato per iscritto."
         ];
         
-        let noteY = finalY + 35;
+        let noteY = finalY;
         noteText.forEach(line => {
             doc.text(line, 15, noteY);
             noteY += 4;
         });
         
         // SALVATAGGIO
-        const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_DDT_' + ddtNumber + '.pdf';
+        const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_SenzaPrezzi_' + quoteNumber + '.pdf';
         doc.save(fileName);
         
-        showNotification('✅ Documento di Trasporto generato: ' + ddtNumber, 'success');
+        showNotification('✅ Preventivo senza prezzi generato: ' + quoteNumber, 'success');
         
     } catch (error) {
-        console.error('Errore generazione DDT:', error);
-        showNotification('❌ Errore nella generazione del DDT', 'error');
+        console.error('Errore generazione PDF senza prezzi:', error);
+        showNotification('❌ Errore nella generazione del PDF', 'error');
     }
 }
 
