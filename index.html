@@ -140,21 +140,7 @@
         </div>
    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap;">
     <button class="btn btn-danger" onclick="document.getElementById('configModal').classList.remove('active')" style="flex: 1; min-width: 100px;">Annulla</button>
-    <button class="btn btn-success" onclick="(function(){
-    const apiKey = document.getElementById('apiKeyInput').value.trim();
-    const sheetsId = document.getElementById('sheetsIdInput').value.trim();
-    if (!apiKey || !sheetsId) {
-        alert('Inserisci API Key e Sheets ID');
-        return;
-    }
-    window.CONFIG.API_KEY = apiKey;
-    window.CONFIG.SHEETS_ID = sheetsId;
-    localStorage.setItem('hubris_api_key', apiKey);
-    localStorage.setItem('hubris_sheets_id', sheetsId);
-    document.getElementById('configModal').classList.remove('active');
-    alert('Configurazione salvata! Ricarica la pagina.');
-    location.reload();
-})()" style="flex: 1; min-width: 120px;">💾 Salva</button>
+   <button class="btn btn-success" id="saveConfigBtn" style="flex: 1; min-width: 120px;">💾 Salva</button>
         </div>
     </div>
 </div>
@@ -347,7 +333,24 @@
     </div>
 </div>
 <script>
-
+// FIX CONFIG BUTTON - DEVE ESSERE PRIMA DI TUTTO
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'saveConfigBtn') {
+        const apiKey = document.getElementById('apiKeyInput').value.trim();
+        const sheetsId = document.getElementById('sheetsIdInput').value.trim();
+        if (!apiKey || !sheetsId) {
+            alert('Inserisci API Key e Sheets ID');
+            return;
+        }
+        CONFIG.API_KEY = apiKey;
+        CONFIG.SHEETS_ID = sheetsId;
+        localStorage.setItem('hubris_api_key', apiKey);
+        localStorage.setItem('hubris_sheets_id', sheetsId);
+        document.getElementById('configModal').classList.remove('active');
+        alert('Configurazione salvata! Ricarica la pagina.');
+        location.reload();
+    }
+});
 // CONFIGURAZIONE GLOBALE - CON I TUOI DATI
 let CONFIG = {
     API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
