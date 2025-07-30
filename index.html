@@ -1129,14 +1129,69 @@ function addEquipmentRow() {
             <button class="move-btn" onclick="moveRow(${rowCounter}, 1)">↓</button>
         </div>
     </td>
-    <td style="width: 180px;">
-        ...
-    </td>
-    <td style="width: 280px;">
-        ...
+    <td>
+        <div class="select-search-wrapper">
+            <input type="text" class="form-input" 
+                placeholder="Cerca categoria..." 
+                id="search-cat-${rowCounter}"
+                onclick="toggleSearchDropdown(${rowCounter}, 'category')"
+                onkeyup="filterSearchDropdown(${rowCounter}, 'category')"
+                autocomplete="off">
+            <div class="select-search" id="dropdown-cat-${rowCounter}">
+                <input type="text" class="select-search-input" 
+                    placeholder="Digita per cercare..." 
+                    onkeyup="filterSearchDropdown(${rowCounter}, 'category')">
+                <div id="options-cat-${rowCounter}">
+                    ${Object.keys(equipmentDatabase).map(cat => 
+                        `<div class="select-search-item" onclick="selectCategory(${rowCounter}, '${cat}')">${cat}</div>`
+                    ).join('')}
+                </div>
             </div>
-        </td>
-        <td>
+        </div>
+        <input type="hidden" id="category-${rowCounter}">
+    </td>
+    <td>
+        <div class="select-search-wrapper">
+            <input type="text" class="form-input" 
+                placeholder="Cerca attrezzatura..." 
+                id="search-eq-${rowCounter}"
+                onclick="toggleSearchDropdown(${rowCounter}, 'equipment')"
+                onkeyup="filterSearchDropdown(${rowCounter}, 'equipment')"
+                autocomplete="off"
+                disabled>
+            <div class="select-search" id="dropdown-eq-${rowCounter}">
+                <input type="text" class="select-search-input" 
+                    placeholder="Digita per cercare..." 
+                    onkeyup="filterSearchDropdown(${rowCounter}, 'equipment')">
+                <div id="options-eq-${rowCounter}"></div>
+            </div>
+        </div>
+        <input type="hidden" id="equipment-${rowCounter}">
+        <textarea class="editable-input" 
+            id="kit-${rowCounter}" 
+            placeholder="Kit/Note personalizzate..." 
+            style="margin-top: 5px; font-size: 12px; color: #666; width: 100%; min-height: 30px; resize: vertical;"
+            onfocus="this.style.height='80px'" 
+            onblur="if(!this.value) this.style.height='30px'"></textarea>
+    </td>
+    <td>
+        <input type="number" class="form-input" value="1" min="1" 
+            onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" 
+            style="width: 100%; text-align: center;">
+    </td>
+    <td>
+        <input type="text" class="editable-input" 
+            id="price-${rowCounter}" 
+            value="€ 0.00" 
+            onchange="updateCustomPrice(${rowCounter})"
+            style="text-align: right; font-weight: bold; color: #2e7d32;">
+    </td>
+    <td style="text-align: right; font-weight: bold; color: #2e7d32;" id="total-${rowCounter}">€ 0.00</td>
+    <td>
+        <button class="btn btn-danger" onclick="removeRow(${rowCounter})" 
+            style="padding: 6px 12px; font-size: 12px;">✕</button>
+    </td>
+`;
             <div class="select-search-wrapper">
                 <input type="text" class="form-input" 
                     placeholder="Cerca categoria..." 
