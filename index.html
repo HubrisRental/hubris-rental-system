@@ -376,29 +376,47 @@
         <div class="totals-section">
         </div>
         <div class="totals-section">
-            <div>
-                <div class="total-line">
-                    <span>Subtotale:</span>
-                    <span id="subtotale" onclick="makeSubtotalEditable()" style="cursor: pointer; text-decoration: underline;" title="Clicca per modificare">€ 0.00</span>
-                </div>
-                <div class="total-line">
-                    <span>Sconto (<span id="discount-percent">0</span>%):</span>
-                    <span id="sconto-amount">€ 0.00</span>
-                </div>
-                <div class="total-line">
-                    <span>Imponibile:</span>
-                    <span id="imponibile">€ 0.00</span>
-                </div>
-                <div class="total-line">
-                    <span>IVA (22%):</span>
-                    <span id="iva">€ 0.00</span>
-                </div>
-                <div class="total-line final">
-                    <span>TOTALE:</span>
-                    <span id="totale">€ 0.00</span>
-                </div>
-            </div>
+    <div>
+        <!-- SUBTOTALE SBARRATO (OPZIONALE) -->
+        <div class="total-line" id="crossed-subtotal-line" style="display: none;">
+            <span>Subtotale:</span>
+            <span id="crossed-subtotal" style="text-decoration: line-through; color: #999;">€ 0.00</span>
         </div>
+        
+        <!-- CONTROLLO SUBTOTALE SBARRATO -->
+        <div class="total-line" style="border-bottom: 1px solid #e1e5e9; padding-bottom: 10px; margin-bottom: 10px;">
+            <span>
+                <input type="checkbox" id="enable-crossed-subtotal" onchange="toggleCrossedSubtotal()" style="margin-right: 8px;">
+                <label for="enable-crossed-subtotal" style="font-size: 14px; cursor: pointer;">Mostra subtotale sbarrato</label>
+            </span>
+            <input type="number" id="crossed-subtotal-input" placeholder="0.00" step="0.01" min="0" 
+                   onchange="updateCrossedSubtotal()" style="width: 100px; text-align: right; padding: 4px; border: 1px solid #ddd; border-radius: 4px; display: none;">
+        </div>
+        
+        <div class="total-line">
+            <span>Subtotale:</span>
+            <span id="subtotale" onclick="makeSubtotalEditable()" 
+                  style="cursor: pointer; text-decoration: underline;" 
+                  title="Clicca per modificare">€ 0.00</span>
+        </div>
+        <div class="total-line">
+            <span>Sconto (<span id="discount-percent">0</span>%):</span>
+            <span id="sconto-amount">€ 0.00</span>
+        </div>
+        <div class="total-line">
+            <span>Imponibile:</span>
+            <span id="imponibile">€ 0.00</span>
+        </div>
+        <div class="total-line">
+            <span>IVA (22%):</span>
+            <span id="iva">€ 0.00</span>
+        </div>
+        <div class="total-line final">
+            <span>TOTALE:</span>
+            <span id="totale">€ 0.00</span>
+        </div>
+    </div>
+</div>
     </div>
 
     <!-- SAVED QUOTES TAB -->
@@ -1464,7 +1482,51 @@ function updateTotals() {
     document.getElementById('iva').textContent = '€ ' + iva.toFixed(2);
     document.getElementById('totale').textContent = '€ ' + totale.toFixed(2);
 }
+// GESTIONE SUBTOTALE SBARRATO
+function toggleCrossedSubtotal() {
+    const checkbox = document.getElementById('enable-crossed-subtotal');
+    const input = document.getElementById('crossed-subtotal-input');
+    const line = document.getElementById('crossed-subtotal-line');
+    
+    if (checkbox.checked) {
+        input.style.display = 'inline-block';
+        input.focus();
+        if (parseFloat(input.value) > 0) {
+            line.style.display = 'flex';
+        }
+    } else {
+        input.style.display = 'none';
+        line.style.display = 'none';
+        input.value = '0';
+        updateCrossedSubtotal();
+    }
+}
 
+function updateCrossedSubtotal() {
+    const input = document.getElementById('crossed-subtotal-input');
+    const line = document.getElementById('crossed-subtotal-line');
+    const crossedElement = document.getElementById('crossed-subtotal');
+    const checkbox = document.getElementById('enable-crossed-subtotal');
+    
+    const value = parseFloat(input.value) || 0;
+    
+    if (checkbox.checked && value > 0) {
+        crossedElement.textContent = '€ ' + value.toFixed(2);
+        line.style.display = 'flex';
+    } else {
+        line.style.display = 'none';
+    }
+}
+
+function getCrossedSubtotalValue() {
+    const checkbox = document.getElementById('enable-crossed-subtotal');
+    const input = document.getElementById('crossed-subtotal-input');
+    
+    if (checkbox.checked && parseFloat(input.value) > 0) {
+        return parseFloat(input.value);
+    }
+    return 0;
+}
 function removeRow(rowId) {
     const row = document.getElementById('row-' + rowId);
     if (row) {
@@ -1527,7 +1589,9 @@ function saveQuote() {
             }
         }
     });
-    
+    // AGGIUNGI QUESTE RIGHE NELLA FUNZIONE saveQuote()
+quote.crossedSubtotal = getCrossedSubtotalValue();
+quote.showCrossedSubtotal = document.getElementById('enable-crossed-subtotal').checked;
     savedQuotes.push(quote);
     saveQuoteToSheets(quote);
     renderSavedQuotes();
@@ -1557,7 +1621,18 @@ function loadQuoteById(quoteId) {
     document.getElementById('scarico').value = quote.scarico || '';
     document.getElementById('durata').value = quote.durata || '1';
     document.getElementById('sconto').value = quote.sconto || '0';
-    
+
+// Carica subtotale sbarrato
+if (quote.showCrossedSubtotal && quote.crossedSubtotal > 0) {
+    document.getElementById('enable-crossed-subtotal').checked = true;
+    document.getElementById('crossed-subtotal-input').value = quote.crossedSubtotal;
+    toggleCrossedSubtotal();
+    updateCrossedSubtotal();
+} else {
+    document.getElementById('enable-crossed-subtotal').checked = false;
+    document.getElementById('crossed-subtotal-input').value = '0';
+    toggleCrossedSubtotal();
+}
     // Load equipment and services
     if (quote.equipment && quote.equipment.length > 0) {
         quote.equipment.forEach((item, index) => {
@@ -1665,6 +1740,9 @@ function resetQuote() {
         document.getElementById('quoteName').value = '';
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
+        document.getElementById('enable-crossed-subtotal').checked = false;
+document.getElementById('crossed-subtotal-input').value = '0';
+toggleCrossedSubtotal();
     }
 }
 
