@@ -1953,8 +1953,9 @@ function generatePDF() {
         
         // SEZIONE DESTINATARIO - CON TUTTI I CAMPI
         doc.setFillColor(248, 250, 255);
-        doc.rect(15, 55, 70, 50, 'F');
+        doc.rect(15, 55, 85, 45, 'F');
         doc.setDrawColor(44, 90, 160);
+        doc.setLineWidth(0.3); // Bordo più sottile
         doc.rect(15, 55, 70, 50);
         
         doc.setFontSize(10);
@@ -1989,11 +1990,12 @@ function generatePDF() {
             doc.text('Tel: ' + contatti, 18, yPos, { maxWidth: 65 });
         }
         
-        // PERIODO NOLEGGIO
-        doc.setFillColor(248, 250, 255);
-        doc.rect(125, 55, 70, 50, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(125, 55, 70, 50);
+        // PERIODO NOLEGGIO - OTTIMIZZATO  
+doc.setFillColor(248, 250, 255);
+doc.rect(110, 55, 85, 45, 'F'); // Più largo, meno alto, più vicino
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3); // Bordo più sottile
+doc.rect(110, 55, 85, 45);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -2011,7 +2013,7 @@ function generatePDF() {
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('DETTAGLIO ATTREZZATURE E SERVIZI', 105, 115, { align: 'center' });
+       doc.text('DETTAGLIO ATTREZZATURE E SERVIZI', 105, 110, { align: 'center' }); // Era 115
         
         // PREPARAZIONE DATI TABELLA
         const equipmentData = [];
@@ -2093,7 +2095,7 @@ function generatePDF() {
         // TABELLA SERVIZI - SISTEMATA GRAFICAMENTE
         if (servicesData.length > 0) {
             doc.setFillColor(255, 152, 0);
-            doc.rect(15, currentY, 180, 10, 'F');
+            doc.rect(15, currentY, 175, 10, 'F');
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
@@ -2226,7 +2228,7 @@ function generatePDF() {
         
         let noteY = finalY;
         noteText.forEach(line => {
-            doc.text(line, 15, noteY, { maxWidth: 180 });
+            doc.text(line, 15, noteY, { maxWidth: 175 }); 
             noteY += 4;
         });
         
@@ -2284,26 +2286,29 @@ function generateDDT() {
         doc.text('Email: info@hubrispictures.com', 55, 44);
         
         // TITOLO DDT - SISTEMATO POSIZIONAMENTO
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('DDT', 195, 10, { align: 'right' });
-        doc.text('(D.P.R. 472/95 comma 3)', 195, 18, { align: 'right' });
-        doc.text('N. ' + ddtNumber, 195, 26, { align: 'right' });
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 195, 33, { align: 'right' });
+doc.setFontSize(16);
+doc.setFont('helvetica', 'bold');
+doc.setTextColor(44, 90, 160);
+doc.text('DDT', 195, 8, { align: 'right' }); // Spostato più in alto
+doc.setFontSize(9); // Font più piccolo
+doc.text('(D.P.R. 472/95 comma 3)', 195, 15, { align: 'right' });
+doc.setFontSize(12); // Font medio
+doc.text('N. ' + ddtNumber, 195, 23, { align: 'right' });
+doc.setFontSize(10);
+doc.setFont('helvetica', 'normal');
+doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 195, 30, { align: 'right' });
         
         // LINEA SEPARATRICE
         doc.setDrawColor(44, 90, 160);
         doc.setLineWidth(1.5);
         doc.line(15, 50, 195, 50);
         
-        // SEZIONE DESTINATARIO - CON TUTTI I CAMPI
-        doc.setFillColor(248, 250, 255);
-        doc.rect(15, 55, 70, 50, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(15, 55, 70, 50);
+        // SEZIONE DESTINATARIO - OTTIMIZZATO
+doc.setFillColor(248, 250, 255);
+doc.rect(15, 55, 85, 45, 'F'); // Più largo, meno alto
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3); // Bordo più sottile
+doc.rect(15, 55, 85, 45);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -2337,11 +2342,12 @@ function generateDDT() {
             doc.text('Tel: ' + contatti, 18, yPos, { maxWidth: 65 });
         }
         
-        // CAUSALE TRASPORTO
-        doc.setFillColor(248, 250, 255);
-        doc.rect(125, 55, 70, 50, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(125, 55, 70, 50);
+       
+doc.setFillColor(248, 250, 255);
+doc.rect(110, 55, 85, 45, 'F'); // Più largo, meno alto, più vicino
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3); // Bordo più sottile
+doc.rect(110, 55, 85, 45);
         
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
@@ -2387,7 +2393,7 @@ function generateDDT() {
             doc.autoTable({
                 head: [['Categoria', 'Articolo', 'Qtà', 'Kit/Descrizione']],
                 body: equipmentData,
-                startY: 125,
+                startY: 120, // Era 125
                 theme: 'grid',
                 headStyles: { 
                     fillColor: [44, 90, 160],
@@ -2452,7 +2458,7 @@ function generateDDT() {
         
         let noteY = finalY;
         noteText.forEach(line => {
-            doc.text(line, 15, noteY, { maxWidth: 180 });
+            doc.text(line, 15, noteY, { maxWidth: 175 }); 
             noteY += 4;
         });
         
@@ -2809,11 +2815,12 @@ function generateNoPricesQuote() {
         doc.setLineWidth(1.5);
         doc.line(15, 50, 195, 50);
         
-        // SEZIONE DESTINATARIO - CON TUTTI I CAMPI
-        doc.setFillColor(248, 250, 255);
-        doc.rect(15, 55, 70, 50, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(15, 55, 70, 50);
+        // SEZIONE DESTINATARIO - OTTIMIZZATO
+doc.setFillColor(248, 250, 255);
+doc.rect(15, 55, 85, 45, 'F'); // Più largo, meno alto
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3); // Bordo più sottile
+doc.rect(15, 55, 85, 45);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -2847,11 +2854,12 @@ function generateNoPricesQuote() {
             doc.text('Tel: ' + contatti, 18, yPos, { maxWidth: 65 });
         }
         
-        // PERIODO NOLEGGIO
-        doc.setFillColor(248, 250, 255);
-        doc.rect(125, 55, 70, 50, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(125, 55, 70, 50);
+        // PERIODO NOLEGGIO - OTTIMIZZATO  
+doc.setFillColor(248, 250, 255);
+doc.rect(110, 55, 85, 45, 'F'); // Più largo, meno alto, più vicino
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3); // Bordo più sottile
+doc.rect(110, 55, 85, 45);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -2944,7 +2952,7 @@ function generateNoPricesQuote() {
         // TABELLA SERVIZI SENZA PREZZI - SISTEMATA GRAFICAMENTE
         if (servicesData.length > 0) {
             doc.setFillColor(255, 152, 0);
-            doc.rect(15, currentY, 180, 10, 'F');
+            doc.rect(15, currentY, 175, 10, 'F');
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
@@ -3050,7 +3058,7 @@ function generateNoPricesQuote() {
         
         let noteY = finalY;
         noteText.forEach(line => {
-            doc.text(line, 15, noteY, { maxWidth: 180 });
+            doc.text(line, 15, noteY, { maxWidth: 175 }); 
             noteY += 4;
         });
         
@@ -3122,11 +3130,12 @@ function generateInsurance() {
         doc.setLineWidth(1.5);
         doc.line(15, 50, 195, 50);
         
-        // SEZIONE DESTINATARIO - CON TUTTI I CAMPI
-        doc.setFillColor(248, 250, 255);
-        doc.rect(15, 55, 70, 50, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(15, 55, 70, 50);
+        // SEZIONE DESTINATARIO - OTTIMIZZATO
+doc.setFillColor(248, 250, 255);
+doc.rect(15, 55, 85, 45, 'F'); // Più largo, meno alto
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3); // Bordo più sottile
+doc.rect(15, 55, 85, 45);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -3160,11 +3169,12 @@ function generateInsurance() {
             doc.text('Tel: ' + contatti, 18, yPos, { maxWidth: 65 });
         }
         
-        // PROGETTO
-        doc.setFillColor(248, 250, 255);
-        doc.rect(125, 55, 70, 50, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.rect(125, 55, 70, 50);
+        // PERIODO NOLEGGIO - OTTIMIZZATO  
+doc.setFillColor(248, 250, 255);
+doc.rect(110, 55, 85, 45, 'F'); // Più largo, meno alto, più vicino
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3); // Bordo più sottile
+doc.rect(110, 55, 85, 45);
         
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
@@ -3222,7 +3232,7 @@ function generateInsurance() {
             doc.autoTable({
                 head: [['Categoria', 'Attrezzatura', 'Qtà', 'Seriale', 'Valore Unit.', 'Totale']],
                 body: insuranceData,
-                startY: 125,
+                startY: 120, // Era 125
                 theme: 'grid',
                 headStyles: { 
                     fillColor: [44, 90, 160],
