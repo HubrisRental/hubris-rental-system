@@ -2091,16 +2091,19 @@ doc.rect(110, 55, 85, 45);
             currentY = doc.lastAutoTable.finalY + 10;
         }
         
-        // TABELLA SERVIZI - SISTEMATA GRAFICAMENTE
-        if (servicesData.length > 0) {
-            // Header SERVIZI con margine uguale alla tabella
-doc.setFillColor(255, 152, 0);
-doc.rect(20, currentY, 170, 10, 'F'); // Inizia da 20 invece di 15, larghezza 170
-doc.setTextColor(255, 255, 255);
-doc.setFontSize(12);
-doc.setFont('helvetica', 'bold');
-doc.text('SERVIZI', 105, currentY + 7, { align: 'center' });
-            currentY += 10;
+        // TABELLA SERVIZI - ALLINEAMENTO PERFETTO
+if (servicesData.length > 0) {
+    // Calcola larghezza totale delle colonne (deve essere uguale all'header)
+    const tableWidth = 35 + 70 + 20 + 25 + 30; // = 180
+    
+    // Header SERVIZI con larghezza esatta della tabella
+    doc.setFillColor(255, 152, 0);
+    doc.rect(15, currentY, tableWidth, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SERVIZI', 15 + (tableWidth/2), currentY + 7, { align: 'center' });
+    currentY += 10;
             
             doc.autoTable({
                 head: [['Categoria', 'Servizio', 'Qtà', 'Prezzo Unit.', 'Totale']],
@@ -2949,16 +2952,19 @@ doc.rect(110, 55, 85, 45);
             currentY = doc.lastAutoTable.finalY + 10;
         }
         
-        // TABELLA SERVIZI SENZA PREZZI - SISTEMATA GRAFICAMENTE
-        if (servicesData.length > 0) {
-            // Header SERVIZI con margine uguale alla tabella
-doc.setFillColor(255, 152, 0);
-doc.rect(20, currentY, 170, 10, 'F'); // Inizia da 20 invece di 15, larghezza 170
-doc.setTextColor(255, 255, 255);
-doc.setFontSize(12);
-doc.setFont('helvetica', 'bold');
-doc.text('SERVIZI', 105, currentY + 7, { align: 'center' });
-            currentY += 10;
+       // TABELLA SERVIZI - ALLINEAMENTO PERFETTO
+if (servicesData.length > 0) {
+    // Calcola larghezza totale delle colonne (deve essere uguale all'header)
+    const tableWidth = 35 + 70 + 20 + 25 + 30; // = 180
+    
+    // Header SERVIZI con larghezza esatta della tabella
+    doc.setFillColor(255, 152, 0);
+    doc.rect(15, currentY, tableWidth, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SERVIZI', 15 + (tableWidth/2), currentY + 7, { align: 'center' });
+    currentY += 10;
             
             doc.autoTable({
                 head: [['Categoria', 'Servizio', 'Qtà', 'Note']],
