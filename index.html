@@ -197,6 +197,26 @@
     background: white;
     outline: none;
 }
+/* Aggiungi questo alla fine della sezione <style> */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.qty-input {
+    width: 80px !important;
+    height: 40px !important;
+    text-align: center !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    border: 2px solid #ddd !important;
+    border-radius: 8px !important;
+}
     </style>
 </head>
 <body>
@@ -980,8 +1000,8 @@ function addServiceRow() {
         </td>
         <td style="padding: 12px 8px; text-align: center;">
             <input type="number" class="form-input" value="1" min="1" 
-                   onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" 
-                   style="width: 60px; text-align: center;">
+       onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" 
+       style="width: 80px; height: 40px; text-align: center; font-size: 16px; font-weight: bold; padding: 8px;">
         </td>
         <td style="padding: 12px 8px;">
             <input type="number" class="form-input" placeholder="0.00" min="0" step="0.01" 
@@ -1207,8 +1227,8 @@ function addEquipmentRow() {
         </td>
         <td>
             <input type="number" class="form-input" value="1" min="1" 
-                onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" 
-                style="width: 100%; text-align: center;">
+       onchange="updateRowTotal(${rowCounter})" id="qty-${rowCounter}" 
+       style="width: 80px; height: 40px; text-align: center; font-size: 16px; font-weight: bold; padding: 8px;">
         </td>
         <td>
             <input type="text" class="editable-input" 
