@@ -111,19 +111,20 @@
 
 /* Select with search */
 .select-search-wrapper { position: relative; }
-.select-search { 
-    position: absolute; 
-    top: 100%; 
-    left: 0; 
-    right: 0; 
-    background: white; 
-    border: 2px solid #2c5aa0; 
-    border-radius: 8px; 
-    max-height: 200px; 
-    overflow-y: auto; 
-    z-index: 1000;
+.select-search {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #2c5aa0;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 9999; /* Z-index molto alto */
     display: none;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3); /* Ombra più forte */
+    margin-top: 2px;
 }
 .select-search.active { display: block; }
 .select-search-input { 
@@ -153,9 +154,9 @@
     border-radius: 8px;
     max-height: 200px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 9999; /* Z-index molto alto */
     display: none;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3); /* Ombra più forte */
     margin-top: 2px;
 }
 
@@ -216,6 +217,14 @@ input[type="number"]::-webkit-inner-spin-button {
     font-weight: bold !important;
     border: 2px solid #ddd !important;
     border-radius: 8px !important;
+}
+.equipment-row {
+    position: relative;
+    z-index: 1;
+}
+
+.equipment-row.dropdown-open {
+    z-index: 10000; /* Quando il dropdown è aperto, la riga va sopra tutto */
 }
     </style>
 </head>
@@ -1303,17 +1312,19 @@ function moveRow(rowId, direction) {
     }
 }
 
-// SEARCH DROPDOWN FUNCTIONS
 function toggleSearchDropdown(rowId, type) {
     const dropdown = document.getElementById(`dropdown-${type === 'category' ? 'cat' : 'eq'}-${rowId}`);
+    const row = document.getElementById(`row-${rowId}`);
     const wasActive = dropdown.classList.contains('active');
     
     // Close all dropdowns
     document.querySelectorAll('.select-search').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.equipment-row').forEach(r => r.classList.remove('dropdown-open')); // Rimuovi classe da tutte le righe
     
     // Toggle this dropdown
     if (!wasActive) {
         dropdown.classList.add('active');
+        row.classList.add('dropdown-open'); // Aggiungi classe alla riga corrente
         dropdown.querySelector('.select-search-input').focus();
     }
 }
