@@ -1951,12 +1951,11 @@ function generatePDF() {
         doc.setLineWidth(1.5);
         doc.line(15, 50, 195, 50);
         
-        // SEZIONE DESTINATARIO - CON TUTTI I CAMPI
-        doc.setFillColor(248, 250, 255);
-        doc.rect(15, 55, 85, 45, 'F');
-        doc.setDrawColor(44, 90, 160);
-        doc.setLineWidth(0.3); // Bordo più sottile
-        doc.rect(15, 55, 70, 50);
+        // SEZIONE DESTINATARIO - METODO ALTERNATIVO
+doc.setDrawColor(44, 90, 160);
+doc.setLineWidth(0.3);
+doc.setFillColor(248, 250, 255);
+doc.roundedRect(15, 55, 85, 45, 0, 0, 'FD'); // Rettangolo con riempimento e bordo insieme
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -2094,12 +2093,13 @@ doc.rect(110, 55, 85, 45);
         
         // TABELLA SERVIZI - SISTEMATA GRAFICAMENTE
         if (servicesData.length > 0) {
-            doc.setFillColor(255, 152, 0);
-            doc.rect(15, currentY, 175, 10, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('SERVIZI', 105, currentY + 7, { align: 'center' });
+            // Header SERVIZI con margine uguale alla tabella
+doc.setFillColor(255, 152, 0);
+doc.rect(20, currentY, 170, 10, 'F'); // Inizia da 20 invece di 15, larghezza 170
+doc.setTextColor(255, 255, 255);
+doc.setFontSize(12);
+doc.setFont('helvetica', 'bold');
+doc.text('SERVIZI', 105, currentY + 7, { align: 'center' });
             currentY += 10;
             
             doc.autoTable({
@@ -2951,12 +2951,13 @@ doc.rect(110, 55, 85, 45);
         
         // TABELLA SERVIZI SENZA PREZZI - SISTEMATA GRAFICAMENTE
         if (servicesData.length > 0) {
-            doc.setFillColor(255, 152, 0);
-            doc.rect(15, currentY, 175, 10, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('SERVIZI', 105, currentY + 7, { align: 'center' });
+            // Header SERVIZI con margine uguale alla tabella
+doc.setFillColor(255, 152, 0);
+doc.rect(20, currentY, 170, 10, 'F'); // Inizia da 20 invece di 15, larghezza 170
+doc.setTextColor(255, 255, 255);
+doc.setFontSize(12);
+doc.setFont('helvetica', 'bold');
+doc.text('SERVIZI', 105, currentY + 7, { align: 'center' });
             currentY += 10;
             
             doc.autoTable({
