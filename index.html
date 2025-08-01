@@ -1340,8 +1340,8 @@ function filterSearchDropdown(rowId, type) {
         );
         
         optionsContainer.innerHTML = filtered.map(cat => 
-            `<div class="select-search-item" onclick="selectCategory(${rowId}, this.dataset.category)" data-category="${cat.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}">${cat}</div>`
-        ).join('');
+    `<div class="select-search-item" onclick="selectCategory(${rowId}, this)" data-category="${cat.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}">${cat}</div>`
+).join('');
     } else {
         const category = document.getElementById('category-' + rowId).value;
         if (!category) return;
@@ -1361,9 +1361,10 @@ function filterSearchDropdown(rowId, type) {
 }
 
 function selectCategory(rowId, categoryElement) {
-    const category = categoryElement || categoryElement.dataset.category;
+    const category = categoryElement.dataset ? categoryElement.dataset.category : categoryElement;
     document.getElementById('search-cat-' + rowId).value = category;
     document.getElementById('dropdown-cat-' + rowId).classList.remove('active');
+    document.getElementById('category-' + rowId).value = category;
     
     // Enable equipment search
     document.getElementById('search-eq-' + rowId).disabled = false;
@@ -1373,7 +1374,7 @@ function selectCategory(rowId, categoryElement) {
     const items = Object.keys(equipmentDatabase[category]);
     const optionsContainer = document.getElementById('options-eq-' + rowId);
     optionsContainer.innerHTML = items.map(item => 
-       `<div class="select-search-item" onclick="selectEquipment(${rowId}, '${item}')">
+       `<div class="select-search-item" onclick="selectEquipment(${rowId}, this)" data-equipment="${item.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}" data-category="${category}">
     ${item} <span class="category-label">${category}</span>
 </div>`
     ).join('');
@@ -1387,7 +1388,9 @@ function selectCategory(rowId, categoryElement) {
 }
 
 function selectEquipment(rowId, equipmentElement) {
-    const equipment = equipmentElement || equipmentElement.dataset.equipment;
+    const equipment = equipmentElement.dataset.equipment;
+    const category = document.getElementById('category-' + rowId).value;
+    
     document.getElementById('equipment-' + rowId).value = equipment;
     document.getElementById('search-eq-' + rowId).value = equipment;
     document.getElementById('dropdown-eq-' + rowId).classList.remove('active');
