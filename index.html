@@ -1211,14 +1211,15 @@ function addEquipmentRow() {
             <input type="hidden" id="category-${rowCounter}">
         </td>
         <td>
-            <div class="select-search-wrapper">
-                <input type="text" class="form-input" 
-                    placeholder="Cerca attrezzatura..." 
-                    id="search-eq-${rowCounter}"
-                    onclick="toggleSearchDropdown(${rowCounter}, 'equipment')"
-                    onkeyup="filterSearchDropdown(${rowCounter}, 'equipment')"
-                    autocomplete="off"
-                    disabled>
+           <div class="select-search-wrapper">
+    <input type="text" class="form-input" 
+        placeholder="Cerca attrezzatura..." 
+        id="search-eq-${rowCounter}"
+        onclick="toggleSearchDropdown(${rowCounter}, 'equipment')"
+        onkeyup="filterSearchDropdown(${rowCounter}, 'equipment')"
+        onblur="updateCustomEquipmentName(${rowCounter})"
+        autocomplete="off"
+        disabled>
                 <div class="select-search" id="dropdown-eq-${rowCounter}">
                     <input type="text" class="select-search-input" 
                         placeholder="Digita per cercare..." 
@@ -1395,6 +1396,12 @@ function selectEquipment(rowId, equipmentElement) {
     document.getElementById('search-eq-' + rowId).value = equipment;
     document.getElementById('dropdown-eq-' + rowId).classList.remove('active');
     
+    // Dopo aver selezionato, rendi il campo modificabile
+    const searchField = document.getElementById('search-eq-' + rowId);
+    searchField.style.backgroundColor = '#fff';
+    searchField.style.borderColor = '#2c5aa0';
+    searchField.title = 'Puoi modificare il nome dell\'attrezzatura';
+    
     if (category && equipment && equipmentDatabase[category][equipment]) {
         const data = equipmentDatabase[category][equipment];
         const duration = parseInt(document.getElementById('durata').value);
@@ -1416,6 +1423,16 @@ function updateCustomPrice(rowId) {
     const price = parseFloat(value) || 0;
     priceInput.value = '€ ' + price.toFixed(2);
     updateRowTotal(rowId);
+}
+function updateCustomEquipmentName(rowId) {
+    const searchInput = document.getElementById('search-eq-' + rowId);
+    const hiddenInput = document.getElementById('equipment-' + rowId);
+    
+    if (searchInput && hiddenInput) {
+        // Aggiorna il valore nascosto con il nome modificato
+        hiddenInput.value = searchInput.value;
+        console.log('📝 Nome attrezzatura aggiornato:', searchInput.value);
+    }
 }
 function updateEquipmentOptions(rowId) {
     const categorySelect = document.getElementById('category-' + rowId);
@@ -2158,7 +2175,7 @@ if (servicesData.length > 0) {
     
     // Header SERVIZI con larghezza esatta della tabella - CENTRATO
     doc.setFillColor(255, 152, 0);
-    doc.rect(12, currentY, tableWidth, 10, 'F'); // Allineato a sinistra come la tabella
+    doc.rect(17, currentY, tableWidth, 10, 'F'); // Allineato a sinistra come la tabella
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -2701,6 +2718,10 @@ doc.rect(110, 55, 85, 45);
             text-align: center;
             font-weight: bold;
         }
+        .equipment-selected {
+    background-color: #f8f9ff !important;
+    border-color: #2c5aa0 !important;
+}
     </style>
 </head>
 <body>
@@ -3019,7 +3040,7 @@ if (servicesData.length > 0) {
     
     // Header SERVIZI con larghezza esatta della tabella - CENTRATO
     doc.setFillColor(255, 152, 0);
-    doc.rect(12, currentY, tableWidth, 10, 'F'); // Allineato a sinistra come la tabella
+    doc.rect(17, currentY, tableWidth, 10, 'F'); // Allineato a sinistra come la tabella
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
