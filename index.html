@@ -1599,55 +1599,66 @@ function saveQuote() {
         equipment: [],
         createdAt: new Date().toLocaleString('it-IT'),
         status: 'draft',
-        total: parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0
+        total: parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0,
+        crossedSubtotal: getCrossedSubtotalValue(),
+        showCrossedSubtotal: document.getElementById('enable-crossed-subtotal').checked
     };
     
+    // Salva tutte le righe (attrezzature e servizi)
     document.querySelectorAll('[id^="row-"]').forEach(row => {
         const rowId = row.id.split('-')[1];
-        const quantity = document.getElementById('qty-' + rowId) ? document.getElementById('qty-' + rowId).value : '';
+        const quantity = document.getElementById('qty-' + rowId) ? parseInt(document.getElementById('qty-' + rowId).value) || 1 : 1;
         
         if (row.classList.contains('service-row')) {
             const serviceName = document.getElementById('service-name-' + rowId) ? document.getElementById('service-name-' + rowId).value : '';
             const serviceNotes = document.getElementById('service-notes-' + rowId) ? document.getElementById('service-notes-' + rowId).value : '';
-            const servicePrice = document.getElementById('service-price-' + rowId) ? document.getElementById('service-price-' + rowId).value : '';
+            const servicePrice = document.getElementById('service-price-' + rowId) ? parseFloat(document.getElementById('service-price-' + rowId).value) || 0 : 0;
             
             if (serviceName) {
                 quote.equipment.push({
                     category: 'SERVIZIO',
                     equipment: serviceName,
-                    quantity: parseInt(quantity),
+                    quantity: quantity,
                     notes: serviceNotes,
-                    price: parseFloat(servicePrice),
+                    price: servicePrice,
                     isService: true
                 });
             }
         } else {
             const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : '';
             const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : '';
+            const kitInfo = document.getElementById('kit-' + rowId) ? document.getElementById('kit-' + rowId).value : '';
+            const priceText = document.getElementById('price-' + rowId) ? document.getElementById('price-' + rowId).value : '€ 0.00';
+            const price = parseFloat(priceText.replace('€ ', '')) || 0;
             
             if (category && equipment) {
                 quote.equipment.push({
-                    category, equipment, quantity: parseInt(quantity), isService: false
+                    category: category,
+                    equipment: equipment,
+                    quantity: quantity,
+                    kit: kitInfo,
+                    price: price,
+                    isService: false
                 });
             }
         }
     });
-    // AGGIUNGI QUESTE RIGHE NELLA FUNZIONE saveQuote()
-quote.crossedSubtotal = getCrossedSubtotalValue();
-quote.showCrossedSubtotal = document.getElementById('enable-crossed-subtotal').checked;
+    
     savedQuotes.push(quote);
     saveQuoteToSheets(quote);
     renderSavedQuotes();
     updateAnalytics();
-    showNotification('✅ Preventivo "' + quoteName + '" salvato!', 'success');
+    showNotification('✅ Preventivo "' + quoteName + '" salvato con ' + quote.equipment.length + ' elementi!', 'success');
 }
-
+    
 function loadQuoteById(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
         showNotification('❌ Preventivo non trovato!', 'error');
         return;
     }
+    
+    console.log('📂 Caricamento preventivo:', quote); // Debug
     
     // Clear existing rows
     document.getElementById('equipmentRows').innerHTML = '';
@@ -1658,6 +1669,7 @@ function loadQuoteById(quoteId) {
     document.getElementById('cliente').value = quote.cliente || '';
     document.getElementById('clientePiva').value = quote.clientePiva || '';
     document.getElementById('clienteVia').value = quote.clienteVia || '';
+    document.getElementById('clientePec').value = quote.clientePec || '';
     document.getElementById('codiceUnivoco').value = quote.codiceUnivoco || '';
     document.getElementById('contatti').value = quote.contatti || '';
     document.getElementById('carico').value = quote.carico || '';
@@ -1665,55 +1677,69 @@ function loadQuoteById(quoteId) {
     document.getElementById('durata').value = quote.durata || '1';
     document.getElementById('sconto').value = quote.sconto || '0';
 
-// Carica subtotale sbarrato
-if (quote.showCrossedSubtotal && quote.crossedSubtotal > 0) {
-    document.getElementById('enable-crossed-subtotal').checked = true;
-    document.getElementById('crossed-subtotal-input').value = quote.crossedSubtotal;
-    toggleCrossedSubtotal();
-    updateCrossedSubtotal();
-} else {
-    document.getElementById('enable-crossed-subtotal').checked = false;
-    document.getElementById('crossed-subtotal-input').value = '0';
-    toggleCrossedSubtotal();
-}
+    // Carica subtotale sbarrato
+    if (quote.showCrossedSubtotal && quote.crossedSubtotal > 0) {
+        document.getElementById('enable-crossed-subtotal').checked = true;
+        document.getElementById('crossed-subtotal-input').value = quote.crossedSubtotal;
+        toggleCrossedSubtotal();
+        updateCrossedSubtotal();
+    } else {
+        document.getElementById('enable-crossed-subtotal').checked = false;
+        document.getElementById('crossed-subtotal-input').value = '0';
+        toggleCrossedSubtotal();
+    }
+    
     // Load equipment and services
     if (quote.equipment && quote.equipment.length > 0) {
+        console.log('🔧 Caricamento', quote.equipment.length, 'elementi'); // Debug
+        
         quote.equipment.forEach((item, index) => {
-            if (item.isService) {
-                addServiceRow();
-                setTimeout(() => {
-                    if (document.getElementById('service-name-' + rowCounter)) {
+            setTimeout(() => {
+                if (item.isService) {
+                    addServiceRow();
+                    setTimeout(() => {
                         document.getElementById('service-name-' + rowCounter).value = item.equipment || '';
                         document.getElementById('service-notes-' + rowCounter).value = item.notes || '';
                         document.getElementById('service-price-' + rowCounter).value = item.price || '';
                         document.getElementById('qty-' + rowCounter).value = item.quantity || 1;
                         updateRowTotal(rowCounter);
-                    }
-                }, 50 * (index + 1));
-            } else {
-                addEquipmentRow();
-                setTimeout(() => {
-                    if (document.getElementById('category-' + rowCounter)) {
+                    }, 100);
+                } else {
+                    addEquipmentRow();
+                    setTimeout(() => {
+                        // Imposta categoria
                         document.getElementById('category-' + rowCounter).value = item.category || '';
-                        updateEquipmentOptions(rowCounter);
-                        setTimeout(() => {
-                            if (document.getElementById('equipment-' + rowCounter)) {
-                                document.getElementById('equipment-' + rowCounter).value = item.equipment || '';
-                                updateRowData(rowCounter);
-                                document.getElementById('qty-' + rowCounter).value = item.quantity || 1;
-                                updateRowTotal(rowCounter);
-                            }
-                        }, 100);
-                    }
-                }, 100 * (index + 1));
-            }
+                        document.getElementById('search-cat-' + rowCounter).value = item.category || '';
+                        
+                        // Abilita e popola equipment
+                        document.getElementById('search-eq-' + rowCounter).disabled = false;
+                        document.getElementById('search-eq-' + rowCounter).placeholder = 'Cerca in ' + item.category + '...';
+                        
+                        // Imposta equipment
+                        document.getElementById('equipment-' + rowCounter).value = item.equipment || '';
+                        document.getElementById('search-eq-' + rowCounter).value = item.equipment || '';
+                        
+                        // Imposta kit e prezzo
+                        document.getElementById('kit-' + rowCounter).value = item.kit || '';
+                        document.getElementById('price-' + rowCounter).value = '€ ' + (item.price || 0).toFixed(2);
+                        document.getElementById('qty-' + rowCounter).value = item.quantity || 1;
+                        
+                        updateRowTotal(rowCounter);
+                    }, 100);
+                }
+            }, 200 * index); // Delay progressivo per ogni elemento
         });
+        
+        // Aggiorna totali dopo aver caricato tutto
+        setTimeout(() => {
+            updateTotals();
+        }, 200 * quote.equipment.length + 500);
     }
     
     // Switch to quotes tab
     showTab('quotes');
     document.querySelector('[onclick="showTab(\'quotes\')"]').classList.add('active');
-    showNotification('✅ Preventivo "' + quote.name + '" caricato!', 'success');
+    showNotification('✅ Preventivo "' + quote.name + '" caricato con ' + (quote.equipment ? quote.equipment.length : 0) + ' elementi!', 'success');
 }
     function generateDDTFromQuote(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
