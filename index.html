@@ -1340,7 +1340,7 @@ function filterSearchDropdown(rowId, type) {
         );
         
         optionsContainer.innerHTML = filtered.map(cat => 
-            `<div class="select-search-item" onclick="selectCategory(${rowId}, '${cat}')">${cat}</div>`
+            `<div class="select-search-item" onclick="selectCategory(${rowId}, this.dataset.category)" data-category="${cat.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}">${cat}</div>`
         ).join('');
     } else {
         const category = document.getElementById('category-' + rowId).value;
@@ -1353,15 +1353,15 @@ function filterSearchDropdown(rowId, type) {
         );
         
         optionsContainer.innerHTML = filtered.map(item => 
-            `<div class="select-search-item" onclick="selectEquipment(${rowId}, '${item}')">
-                ${item} <span class="category-label">${category}</span>
-            </div>`
+          `<div class="select-search-item" onclick="selectEquipment(${rowId}, this.dataset.equipment)" data-equipment="${item.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}" data-category="${category}">
+    ${item} <span class="category-label">${category}</span>
+</div>`
         ).join('');
     }
 }
 
-function selectCategory(rowId, category) {
-    document.getElementById('category-' + rowId).value = category;
+function selectCategory(rowId, categoryElement) {
+    const category = categoryElement || categoryElement.dataset.category;
     document.getElementById('search-cat-' + rowId).value = category;
     document.getElementById('dropdown-cat-' + rowId).classList.remove('active');
     
@@ -1373,9 +1373,9 @@ function selectCategory(rowId, category) {
     const items = Object.keys(equipmentDatabase[category]);
     const optionsContainer = document.getElementById('options-eq-' + rowId);
     optionsContainer.innerHTML = items.map(item => 
-        `<div class="select-search-item" onclick="selectEquipment(${rowId}, '${item}')">
-            ${item} <span class="category-label">${category}</span>
-        </div>`
+       `<div class="select-search-item" onclick="selectEquipment(${rowId}, '${item}')">
+    ${item} <span class="category-label">${category}</span>
+</div>`
     ).join('');
     
     // Reset equipment selection
@@ -1386,8 +1386,8 @@ function selectCategory(rowId, category) {
     updateTotals();
 }
 
-function selectEquipment(rowId, equipment) {
-    const category = document.getElementById('category-' + rowId).value;
+function selectEquipment(rowId, equipmentElement) {
+    const equipment = equipmentElement || equipmentElement.dataset.equipment;
     document.getElementById('equipment-' + rowId).value = equipment;
     document.getElementById('search-eq-' + rowId).value = equipment;
     document.getElementById('dropdown-eq-' + rowId).classList.remove('active');
