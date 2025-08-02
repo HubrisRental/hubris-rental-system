@@ -226,9 +226,66 @@ input[type="number"]::-webkit-inner-spin-button {
 .equipment-row.dropdown-open {
     z-index: 10000; /* Quando il dropdown è aperto, la riga va sopra tutto */
 }
+        .login-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+}
+
+.login-box h2 {
+    color: #2c5aa0;
+    margin-bottom: 20px;
+}
+
+.login-input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 10px;
+    font-size: 16px;
+    margin: 10px 0;
+    outline: none;
+}
+
+.login-input:focus {
+    border-color: #2c5aa0;
+}
+
+.login-error {
+    color: #f44336;
+    margin: 10px 0;
+    font-size: 14px;
+}
     </style>
 </head>
 <body>
+    <div id="loginOverlay" class="login-overlay">
+    <div class="login-box">
+        <img src="https://i.imgur.com/ABMgyI8.png" alt="Logo" style="width: 60px; height: 60px; margin-bottom: 20px;">
+        <h2>HUBRIS RENTAL - ACCESSO</h2>
+        <input type="password" id="passwordInput" class="login-input" placeholder="Inserisci la password" onkeypress="checkEnter(event)">
+        <div id="loginError" class="login-error" style="display: none;">Password errata!</div>
+        <button class="btn btn-primary" onclick="checkPassword()" style="width: 100%; margin-top: 15px;">🔓 ACCEDI</button>
+        <p style="font-size: 12px; color: #666; margin-top: 20px;">Sistema interno Hubris Pictures</p>
+    </div>
+</div>
     <nav class="navbar">
     <div class="nav-content">
       <div class="logo" style="display: flex; align-items: center; gap: 10px;">
@@ -250,6 +307,7 @@ input[type="number"]::-webkit-inner-spin-button {
         <button class="tab" onclick="showTab('quotes')">📋 Nuovo Preventivo</button>
         <button class="tab" onclick="showTab('saved')">💾 Preventivi Salvati</button>
         <button class="tab" onclick="showTab('analytics')">📊 Analytics</button>
+        <button class="btn btn-danger" onclick="logout()" style="padding: 6px 12px; font-size: 12px;">🔒 Logout</button>
     </div>
 
    <!-- CONFIG MODAL -->
@@ -3815,6 +3873,7 @@ function duplicateQuote() {
 // INITIALIZATION
 // INITIALIZATION MIGLIORATA
 window.addEventListener('load', function() {
+    checkAuthentication();
     console.log('🚀 Inizializzazione sistema Hubris Rental...');
     
     // Carica configurazione salvata
@@ -3969,6 +4028,50 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+    // SISTEMA DI AUTENTICAZIONE
+const CORRECT_PASSWORD = "Hubris2020"; // CAMBIA QUESTA PASSWORD
+
+function checkPassword() {
+    const inputPassword = document.getElementById('passwordInput').value;
+    const errorDiv = document.getElementById('loginError');
+    
+    if (inputPassword === CORRECT_PASSWORD) {
+        // Password corretta
+        document.getElementById('loginOverlay').style.display = 'none';
+        localStorage.setItem('hubris_authenticated', 'true');
+        showNotification('✅ Accesso autorizzato!', 'success');
+    } else {
+        // Password sbagliata
+        errorDiv.style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function checkEnter(event) {
+    if (event.key === 'Enter') {
+        checkPassword();
+    }
+}
+
+function checkAuthentication() {
+    const isAuthenticated = localStorage.getItem('hubris_authenticated');
+    if (isAuthenticated === 'true') {
+        document.getElementById('loginOverlay').style.display = 'none';
+    } else {
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('passwordInput').focus();
+    }
+}
+
+// Aggiungi logout nel menu
+function logout() {
+    localStorage.removeItem('hubris_authenticated');
+    location.reload();
+}
 </script>
 </body>
 </html>
