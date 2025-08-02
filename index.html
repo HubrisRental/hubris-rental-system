@@ -2242,48 +2242,37 @@ doc.rect(110, 55, 85, 45);
         }
         
         // TABELLA SERVIZI - ALLINEAMENTO PERFETTO
+// TABELLA SERVIZI - STESSI COLORI ATTREZZATURE
 if (servicesData.length > 0) {
-    // Calcola larghezza totale delle colonne (deve essere uguale all'header)
-    const tableWidth = 35 + 70 + 20 + 25 + 30; // = 180
-    
-    // Header SERVIZI con larghezza esatta della tabella - CENTRATO
-    doc.setFillColor(255, 152, 0);
-    doc.rect(17, currentY, tableWidth, 10, 'F'); // Allineato a sinistra come la tabella
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SERVIZI', 15 + (tableWidth/2), currentY + 7, { align: 'center' });
-    currentY += 10;
-            
-            doc.autoTable({
-                head: [['Categoria', 'Servizio', 'Qtà', 'Prezzo Unit.', 'Totale']],
-                body: servicesData,
-                startY: currentY,
-                theme: 'grid',
-                headStyles: { 
-                    fillColor: [230, 126, 34],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    fontSize: 11
-                },
-                bodyStyles: {
-                    fontSize: 10,
-                    cellPadding: 4
-                },
-                columnStyles: {
-                    0: { cellWidth: 35 },
-                    1: { cellWidth: 70 },
-                    2: { cellWidth: 20, halign: 'center' },
-                    3: { cellWidth: 25, halign: 'right' },
-                    4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
-                },
-                alternateRowStyles: {
-                    fillColor: [255, 243, 224]
-                }
-            });
-            
-            currentY = doc.lastAutoTable.finalY + 15;
+    doc.autoTable({
+        head: [['Categoria', 'Servizio', 'Qtà', 'Prezzo Unit.', 'Totale']],
+        body: servicesData,
+        startY: currentY,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [44, 90, 160], // Stesso blu delle attrezzature
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 11
+        },
+        bodyStyles: {
+            fontSize: 10,
+            cellPadding: 3 // Stesso padding delle attrezzature
+        },
+        columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: 70 },
+            2: { cellWidth: 20, halign: 'center' },
+            3: { cellWidth: 25, halign: 'right' },
+            4: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+        },
+        alternateRowStyles: {
+            fillColor: [248, 250, 255] // Stesso colore alternato delle attrezzature
         }
+    });
+    
+    currentY = doc.lastAutoTable.finalY + 10;
+}
         
         // TOTALI FINALI CON SUBTOTALE SBARRATO
         const crossedSubtotalValue = getCrossedSubtotalValue();
@@ -3107,47 +3096,36 @@ doc.rect(110, 55, 85, 45);
         }
         
        // TABELLA SERVIZI - ALLINEAMENTO PERFETTO
+// TABELLA SERVIZI - STESSI COLORI
 if (servicesData.length > 0) {
-    // Calcola larghezza totale delle colonne (deve essere uguale all'header)
-    const tableWidth = 35 + 70 + 20 + 25 + 30; // = 180
-    
-    // Header SERVIZI con larghezza esatta della tabella - CENTRATO
-    doc.setFillColor(255, 152, 0);
-    doc.rect(17, currentY, tableWidth, 10, 'F'); // Allineato a sinistra come la tabella
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SERVIZI', 15 + (tableWidth/2), currentY + 7, { align: 'center' });
-    currentY += 10;
-            
-            doc.autoTable({
-                head: [['Categoria', 'Servizio', 'Qtà', 'Note']],
-                body: servicesData,
-                startY: currentY,
-                theme: 'grid',
-                headStyles: { 
-                    fillColor: [230, 126, 34],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    fontSize: 11
-                },
-                bodyStyles: {
-                    fontSize: 10,
-                    cellPadding: 4
-                },
-                columnStyles: {
-                    0: { cellWidth: 40 },
-                    1: { cellWidth: 80 },
-                    2: { cellWidth: 20, halign: 'center' },
-                    3: { cellWidth: 40 }
-                },
-                alternateRowStyles: {
-                    fillColor: [255, 243, 224]
-                }
-            });
-            
-            currentY = doc.lastAutoTable.finalY + 15;
+    doc.autoTable({
+        head: [['Categoria', 'Servizio', 'Qtà', 'Note']],
+        body: servicesData,
+        startY: currentY,
+        theme: 'grid',
+        headStyles: { 
+            fillColor: [44, 90, 160], // Stesso blu
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 11
+        },
+        bodyStyles: {
+            fontSize: 10,
+            cellPadding: 4
+        },
+        columnStyles: {
+            0: { cellWidth: 40 },
+            1: { cellWidth: 80 },
+            2: { cellWidth: 20, halign: 'center' },
+            3: { cellWidth: 40 }
+        },
+        alternateRowStyles: {
+            fillColor: [248, 250, 255] // Stesso colore alternato
         }
+    });
+    
+    currentY = doc.lastAutoTable.finalY + 15;
+}
         
         // TOTALI FINALI CON SUBTOTALE SBARRATO
         const crossedSubtotalValue = getCrossedSubtotalValue();
