@@ -66,7 +66,15 @@
         .notification.info { background: #2196F3; }
         .notification.warning { background: #FF9800; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        .table-container { background: white; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); max-height: 600px; overflow-y: auto; }
+        .table-container { 
+    background: white; 
+    border-radius: 15px; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08); 
+    max-height: 600px; 
+    overflow-y: auto;
+    position: relative;
+    z-index: 1;
+}
         .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .data-table th { background: linear-gradient(135deg, #2c5aa0, #1a4480); color: white; padding: 15px 12px; text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 10; }
         .data-table td { padding: 12px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
@@ -140,7 +148,14 @@
     overflow: visible !important;
 }
 
-.table-container {
+/* Mantieni overflow auto solo per il database, non per la sezione preventivi */
+#database .table-container {
+    overflow-y: auto !important;
+    max-height: 600px !important;
+}
+
+/* Per la sezione preventivi mantieni visible per i dropdown */
+#quotes .table-container {
     overflow: visible !important;
 }
 
