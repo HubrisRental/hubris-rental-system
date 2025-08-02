@@ -390,10 +390,11 @@ input[type="number"]::-webkit-inner-spin-button {
                     <label class="form-label">Nome Preventivo</label>
                     <input type="text" class="form-input" id="quoteName" placeholder="Es: Spot TV Audi Q3">
                 </div>
-                <button class="btn btn-success" onclick="saveQuote()">💾 Salva</button>
-                <button class="btn btn-info" onclick="loadQuote()">📂 Carica</button>
-                <button class="btn btn-warning" onclick="duplicateQuote()">📄 Duplica</button>
-                <button class="btn btn-danger" onclick="resetQuote()">🔄 Reset</button>
+                <button class="btn btn-success" id="saveBtn" onclick="saveQuote()">💾 Salva</button>
+<button class="btn btn-success" id="saveAsNewBtn" onclick="saveAsNew()" style="display: none;">💾 Salva Come Nuovo</button>
+<button class="btn btn-info" onclick="loadQuote()">📂 Carica</button>
+<button class="btn btn-warning" onclick="duplicateQuote()">📄 Duplica</button>
+<button class="btn btn-danger" onclick="resetQuote()">🔄 Reset</button>
             </div>
         </div>
        <div class="form-grid">
@@ -601,6 +602,9 @@ let savedQuotes = [];
 let isConnected = false;
 let gapi_loaded = false;
 let rowCounter = 0;
+// MODALITÀ MODIFICA PREVENTIVI
+let currentQuoteId = null; // ID del preventivo in modifica (null = nuovo)
+let isEditMode = false;    // Flag per sapere se siamo in modalità modifica
 
 // CONFIGURATION MODAL FUNCTIONS
 // CONFIGURATION MODAL FUNCTIONS - GLOBALI
@@ -876,76 +880,11 @@ async function loadQuotesFromSheets() {
     // Sempre renderizza, anche se vuoto
     renderSavedQuotes();
     updateAnalytics();
-    
-    // Tentativo opzionale Google Sheets (solo se connesso)
-    if (gapi_loaded && isConnected) {
-        try {
-            console.log('🔄 Tentativo sync Google Sheets preventivi...');
-            const response = await gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: CONFIG.SHEETS_ID,
-                range: CONFIG.QUOTES_RANGE
-            });
-            
-            if (response && response.result && response.result.values) {
-                const values = response.result.values;
-                if (values.length > 1) {
-                    const sheetsQuotes = parseQuotesData(values);
-                    console.log('📊 Preventivi trovati su Google Sheets:', sheetsQuotes.length);
-                    
-                    // Merge intelligente (evita duplicati)
-                    let merged = 0;
-                    sheetsQuotes.forEach(sheetQuote => {
-                        const existsLocally = savedQuotes.find(localQuote => 
-                            localQuote.id === sheetQuote.id || 
-                            (localQuote.name === sheetQuote.name && localQuote.cliente === sheetQuote.cliente)
-                        );
-                        
-                        if (!existsLocally) {
-                            savedQuotes.push(sheetQuote);
-                            merged++;
-                        }
-                    });
-                    
-                    if (merged > 0) {
-                        localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
-                        renderSavedQuotes();
-                        updateAnalytics();
-                        showNotification(`🔄 ${merged} preventivi sincronizzati da Google Sheets`, 'info');
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('⚠️ Google Sheets preventivi non disponibile:', error.message);
-            // Non mostrare errore all'utente, è normale che non ci sia il foglio preventivi
-        }
-    }
 }
 
 async function saveQuoteToSheets(quote) {
     // Salva sempre in localStorage
     localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
-    
-    if (!gapi_loaded || !isConnected) {
-        showNotification('💾 Preventivo salvato localmente - sincronizzazione quando connesso', 'warning');
-        return;
-    }
-    try {
-        const quoteRow = [
-            quote.id, quote.name, quote.cliente, quote.clientePiva || '', quote.contatti, 
-            quote.carico, quote.scarico, quote.durata, quote.sconto, quote.total, 
-            quote.status, quote.createdAt, JSON.stringify(quote.equipment)
-        ];
-        await gapi.client.sheets.spreadsheets.values.append({
-            spreadsheetId: CONFIG.SHEETS_ID,
-            range: 'Preventivi_Salvati!A:M',
-            valueInputOption: 'RAW',
-            resource: { values: [quoteRow] }
-        });
-        showNotification('✅ Preventivo salvato su Google Sheets', 'success');
-    } catch (error) {
-        console.error('Errore salvataggio:', error);
-        showNotification('❌ Errore salvataggio su Google Sheets, salvato localmente', 'error');
-    }
 }
 
 // DATA PROCESSING
@@ -1673,28 +1612,70 @@ function saveQuote() {
         showNotification('❌ Inserisci un nome per il preventivo!', 'error');
         return;
     }
-    const quote = {
-        id: Date.now(),
-        name: quoteName,
-        cliente: document.getElementById('cliente').value,
-        clientePiva: document.getElementById('clientePiva').value,
-        clienteVia: document.getElementById('clienteVia').value,
-        clientePec: document.getElementById('clientePec').value,
-        codiceUnivoco: document.getElementById('codiceUnivoco').value,
-        contatti: document.getElementById('contatti').value,
-        carico: document.getElementById('carico').value,
-        scarico: document.getElementById('scarico').value,
-        durata: document.getElementById('durata').value,
-        sconto: document.getElementById('sconto').value,
-        equipment: [],
-        createdAt: new Date().toLocaleString('it-IT'),
-        status: 'draft',
-        total: parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0,
-        crossedSubtotal: getCrossedSubtotalValue(),
-        showCrossedSubtotal: document.getElementById('enable-crossed-subtotal').checked
-    };
     
-    // Salva tutte le righe (attrezzature e servizi)
+    let quote;
+    
+    if (isEditMode && currentQuoteId) {
+        // MODALITÀ AGGIORNAMENTO
+        const existingIndex = savedQuotes.findIndex(q => q.id === currentQuoteId);
+        if (existingIndex === -1) {
+            showNotification('❌ Preventivo originale non trovato!', 'error');
+            return;
+        }
+        
+        quote = {
+            id: currentQuoteId, // Mantieni l'ID originale
+            name: quoteName,
+            cliente: document.getElementById('cliente').value,
+            clientePiva: document.getElementById('clientePiva').value,
+            clienteVia: document.getElementById('clienteVia').value,
+            clientePec: document.getElementById('clientePec').value,
+            codiceUnivoco: document.getElementById('codiceUnivoco').value,
+            contatti: document.getElementById('contatti').value,
+            carico: document.getElementById('carico').value,
+            scarico: document.getElementById('scarico').value,
+            durata: document.getElementById('durata').value,
+            sconto: document.getElementById('sconto').value,
+            equipment: [],
+            createdAt: savedQuotes[existingIndex].createdAt, // Mantieni data originale
+            updatedAt: new Date().toLocaleString('it-IT'), // Aggiungi data aggiornamento
+            status: savedQuotes[existingIndex].status, // Mantieni status
+            total: parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0,
+            crossedSubtotal: getCrossedSubtotalValue(),
+            showCrossedSubtotal: document.getElementById('enable-crossed-subtotal').checked
+        };
+        
+        // Aggiorna l'array esistente
+        savedQuotes[existingIndex] = quote;
+        
+    } else {
+        // MODALITÀ NUOVO PREVENTIVO
+        quote = {
+            id: Date.now(),
+            name: quoteName,
+            cliente: document.getElementById('cliente').value,
+            clientePiva: document.getElementById('clientePiva').value,
+            clienteVia: document.getElementById('clienteVia').value,
+            clientePec: document.getElementById('clientePec').value,
+            codiceUnivoco: document.getElementById('codiceUnivoco').value,
+            contatti: document.getElementById('contatti').value,
+            carico: document.getElementById('carico').value,
+            scarico: document.getElementById('scarico').value,
+            durata: document.getElementById('durata').value,
+            sconto: document.getElementById('sconto').value,
+            equipment: [],
+            createdAt: new Date().toLocaleString('it-IT'),
+            status: 'draft',
+            total: parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0,
+            crossedSubtotal: getCrossedSubtotalValue(),
+            showCrossedSubtotal: document.getElementById('enable-crossed-subtotal').checked
+        };
+        
+        // Aggiungi nuovo preventivo
+        savedQuotes.push(quote);
+    }
+    
+    // Salva attrezzature e servizi (codice esistente)
     document.querySelectorAll('[id^="row-"]').forEach(row => {
         const rowId = row.id.split('-')[1];
         const quantity = document.getElementById('qty-' + rowId) ? parseInt(document.getElementById('qty-' + rowId).value) || 1 : 1;
@@ -1715,8 +1696,10 @@ function saveQuote() {
                 });
             }
         } else {
-            const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : '';
-            const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : '';
+            const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : 
+                            (document.getElementById('search-cat-' + rowId) ? document.getElementById('search-cat-' + rowId).value : '');
+            const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : 
+                             (document.getElementById('search-eq-' + rowId) ? document.getElementById('search-eq-' + rowId).value : '');
             const kitInfo = document.getElementById('kit-' + rowId) ? document.getElementById('kit-' + rowId).value : '';
             const priceText = document.getElementById('price-' + rowId) ? document.getElementById('price-' + rowId).value : '€ 0.00';
             const price = parseFloat(priceText.replace('€ ', '')) || 0;
@@ -1734,13 +1717,70 @@ function saveQuote() {
         }
     });
     
-    savedQuotes.push(quote);
-    saveQuoteToSheets(quote);
+    // Salva in localStorage
+    localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
     renderSavedQuotes();
     updateAnalytics();
-    showNotification('✅ Preventivo "' + quoteName + '" salvato con ' + quote.equipment.length + ' elementi!', 'success');
-}
     
+    // Notifica appropriata
+    if (isEditMode) {
+        showNotification('✅ Preventivo "' + quoteName + '" aggiornato!', 'success');
+    } else {
+        showNotification('✅ Nuovo preventivo "' + quoteName + '" salvato!', 'success');
+        // Entra in modalità modifica dopo il primo salvataggio
+        currentQuoteId = quote.id;
+        isEditMode = true;
+        updateUIMode();
+    }
+}
+
+    function saveAsNew() {
+    // Forza modalità nuovo preventivo
+    const originalMode = isEditMode;
+    const originalId = currentQuoteId;
+    
+    isEditMode = false;
+    currentQuoteId = null;
+    
+    // Chiede nuovo nome
+    const newName = prompt('Nome per il nuovo preventivo:', document.getElementById('quoteName').value + ' - Copia');
+    if (!newName) {
+        // Ripristina modalità originale se annullato
+        isEditMode = originalMode;
+        currentQuoteId = originalId;
+        return;
+    }
+    
+    document.getElementById('quoteName').value = newName;
+    saveQuote(); // Salva come nuovo
+    
+    showNotification('📄 Nuovo preventivo "' + newName + '" creato!', 'success');
+}
+
+    function updateUIMode() {
+    const saveBtn = document.getElementById('saveBtn');
+    const saveAsNewBtn = document.getElementById('saveAsNewBtn');
+    const sectionTitle = document.querySelector('.section-title');
+    
+    if (isEditMode && currentQuoteId) {
+        // MODALITÀ MODIFICA
+        saveBtn.innerHTML = '✏️ Aggiorna';
+        saveBtn.className = 'btn btn-warning';
+        saveAsNewBtn.style.display = 'inline-block';
+        
+        const quoteName = document.getElementById('quoteName').value;
+        sectionTitle.textContent = 'Modifica Preventivo: ' + quoteName;
+        sectionTitle.style.color = '#ff9800';
+    } else {
+        // MODALITÀ NUOVO
+        saveBtn.innerHTML = '💾 Salva';
+        saveBtn.className = 'btn btn-success';
+        saveAsNewBtn.style.display = 'none';
+        
+        sectionTitle.textContent = 'Nuovo Preventivo';
+        sectionTitle.style.color = '#2c5aa0';
+    }
+}
 function loadQuoteById(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
@@ -1830,7 +1870,11 @@ function loadQuoteById(quoteId) {
     showTab('quotes');
     document.querySelector('[onclick="showTab(\'quotes\')"]').classList.add('active');
     showNotification('✅ Preventivo "' + quote.name + '" caricato con ' + (quote.equipment ? quote.equipment.length : 0) + ' elementi!', 'success');
+    currentQuoteId = quoteId;
+    isEditMode = true;
+    updateUIMode();
 }
+    
     function generateDDTFromQuote(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
@@ -1902,6 +1946,9 @@ function resetQuote() {
         document.getElementById('enable-crossed-subtotal').checked = false;
 document.getElementById('crossed-subtotal-input').value = '0';
 toggleCrossedSubtotal();
+         currentQuoteId = null;
+        isEditMode = false;
+        updateUIMode();
     }
 }
 
