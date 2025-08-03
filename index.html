@@ -2349,19 +2349,19 @@ if (servicesData.length > 0) {
         
         let lineY = boxY + 7;
         
-        // Subtotale sbarrato se presente - COLORE PIÙ SCURO
-        if (showCrossedSubtotal && crossedSubtotalValue > 0) {
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(100, 100, 100); // PIÙ SCURO
-            doc.text('Subtotale:', 118, lineY);
-            const textWidth = doc.getTextWidth('€ ' + crossedSubtotalValue.toFixed(2));
-            doc.text('€ ' + crossedSubtotalValue.toFixed(2), 190, lineY, { align: 'right' });
-            doc.setDrawColor(100, 100, 100); // LINEA PIÙ SCURA
-            doc.setLineWidth(1);
-            doc.line(190 - textWidth, lineY - 1, 190, lineY - 1);
-            lineY += 8;
-            doc.setTextColor(0, 0, 0);
-        }
+        // Subtotale sbarrato se presente - LINEA PIÙ SOTTILE
+if (showCrossedSubtotal && crossedSubtotalValue > 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Subtotale:', 118, lineY);
+    const textWidth = doc.getTextWidth('€ ' + crossedSubtotalValue.toFixed(2));
+    doc.text('€ ' + crossedSubtotalValue.toFixed(2), 190, lineY, { align: 'right' });
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(0.5); // Più sottile: da 1 a 0.5
+    doc.line(190 - textWidth, lineY - 1, 190, lineY - 1);
+    lineY += 8;
+    doc.setTextColor(0, 0, 0);
+}
         
         // Subtotale normale
         doc.setFont('helvetica', 'normal');
@@ -3198,18 +3198,19 @@ if (servicesData.length > 0) {
         let lineY = currentY + 7;
         
         // Subtotale sbarrato se presente - COLORE PIÙ SCURO
-        if (showCrossedSubtotal && crossedSubtotalValue > 0) {
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(100, 100, 100); // PIÙ SCURO
-            doc.text('Totale:', 133, lineY);
-            const textWidth = doc.getTextWidth('€ ' + crossedSubtotalValue.toFixed(2));
-            doc.text('€ ' + crossedSubtotalValue.toFixed(2), 190, lineY, { align: 'right' });
-            doc.setDrawColor(100, 100, 100); // LINEA PIÙ SCURA
-            doc.setLineWidth(1);
-            doc.line(190 - textWidth, lineY - 1, 190, lineY - 1);
-            lineY += 7;
-            doc.setTextColor(0, 0, 0);
-        }
+        // Subtotale sbarrato se presente - LINEA PIÙ SOTTILE
+if (showCrossedSubtotal && crossedSubtotalValue > 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Subtotale:', 118, lineY);
+    const textWidth = doc.getTextWidth('€ ' + crossedSubtotalValue.toFixed(2));
+    doc.text('€ ' + crossedSubtotalValue.toFixed(2), 190, lineY, { align: 'right' });
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(0.5); // Più sottile: da 1 a 0.5
+    doc.line(190 - textWidth, lineY - 1, 190, lineY - 1);
+    lineY += 8;
+    doc.setTextColor(0, 0, 0);
+}
         
         doc.text('Totale imponibile:', 133, lineY);
         doc.text('€ ' + imponibileValue.toFixed(2), 190, lineY, { align: 'right' });
