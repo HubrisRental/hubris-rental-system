@@ -712,7 +712,7 @@ window.saveConfig = function() {
         // Reset stato precedente
         isConnected = false;
         gapi_loaded = false;
-        updateConnectionStatus('offline', 'Configurazione in corso...');
+        //updateConnectionStatus('offline', 'Configurazione in corso...');
         
         // Salva nuova configurazione
         CONFIG.API_KEY = apiKey;
@@ -760,13 +760,13 @@ function initializeGoogleAPI() {
     }
 
     if (typeof updateConnectionStatus !== 'undefined') {
-    updateConnectionStatus('syncing', 'Connessione in corso...');
+    //updateConnectionStatus('syncing', 'Connessione in corso...');
 }
     
     // Verifica se gapi è disponibile
     if (typeof gapi === 'undefined') {
         console.error('Google API non caricata');
-        updateConnectionStatus('offline', 'Google API non disponibile');
+        //updateConnectionStatus('offline', 'Google API non disponibile');
         showNotification('❌ Google API non caricata. Ricaricare la pagina.', 'error');
         return;
     }
@@ -783,7 +783,7 @@ function initializeGoogleAPI() {
                 console.log('✅ Google API inizializzata');
                 gapi_loaded = true;
                 isConnected = true;
-                updateConnectionStatus('online', 'Connesso');
+                //updateConnectionStatus('online', 'Connesso');
                 
                 // Test connessione con un tentativo di lettura
                 try {
@@ -831,7 +831,7 @@ function initializeGoogleAPI() {
         },
         onerror: (error) => {
             console.error('Errore caricamento gapi:', error);
-            updateConnectionStatus('offline', 'Errore caricamento API');
+            //updateConnectionStatus('offline', 'Errore caricamento API');
             showNotification('❌ Errore nel caricamento delle API Google', 'error');
         }
     });
@@ -844,7 +844,7 @@ async function loadDatabaseFromSheets() {
     }
 
     try {
-        updateConnectionStatus('syncing', 'Sincronizzazione database...');
+        //updateConnectionStatus('syncing', 'Sincronizzazione database...');
         console.log('🔄 Caricamento database da Sheets ID:', CONFIG.SHEETS_ID);
         console.log('🔄 Range:', CONFIG.DATABASE_RANGE);
 
@@ -871,7 +871,7 @@ async function loadDatabaseFromSheets() {
         }
 
         processEquipmentData(values);
-        updateConnectionStatus('online', 'Database aggiornato');
+        //updateConnectionStatus('online', 'Database aggiornato');
         updateSyncTime();
         
         const categoriesCount = Object.keys(equipmentDatabase).length;
@@ -885,7 +885,7 @@ async function loadDatabaseFromSheets() {
 
     } catch (error) {
         console.error('❌ Errore dettagliato caricamento database:', error);
-        updateConnectionStatus('offline', 'Errore sync database');
+        //updateConnectionStatus('offline', 'Errore sync database');
         
         // Messaggi di errore più specifici
         if (error.status === 403) {
@@ -1570,7 +1570,7 @@ async function testConnection() {
     }
     
     console.log('🧪 Test connessione Google Sheets...');
-    updateConnectionStatus('syncing', 'Test connessione...');
+    //updateConnectionStatus('syncing', 'Test connessione...');
     
     try {
         // Test semplice: prova a leggere una cella qualsiasi
@@ -1581,7 +1581,7 @@ async function testConnection() {
         
         if (response && response.result) {
             console.log('✅ Test connessione riuscito');
-            updateConnectionStatus('online', 'Connesso e testato');
+            //updateConnectionStatus('online', 'Connesso e testato');
             showNotification('✅ Connessione Google Sheets verificata!', 'success');
             return true;
         } else {
@@ -1590,7 +1590,7 @@ async function testConnection() {
         
     } catch (error) {
         console.error('❌ Test connessione fallito:', error);
-        updateConnectionStatus('offline', 'Test fallito');
+        //updateConnectionStatus('offline', 'Test fallito');
         
         // Messaggi di errore specifici
         if (error.message.includes('API_KEY_INVALID')) {
@@ -4404,7 +4404,7 @@ window.addEventListener('load', function() {
         // Verifica base della API key
         if (!CONFIG.API_KEY.startsWith('AIza') || CONFIG.API_KEY.length < 39) {
             console.error('❌ API Key non valida nel formato');
-            updateConnectionStatus('offline', 'API Key non valida');
+            //updateConnectionStatus('offline', 'API Key non valida');
             showNotification('❌ API Key non valida - Clicca su Config per aggiornare', 'error');
             return;
         }
@@ -4415,7 +4415,7 @@ window.addEventListener('load', function() {
         }, 1000);
     } else {
         console.log('⚙️ Configurazione incompleta, modalità offline');
-        updateConnectionStatus('offline', 'Configurazione richiesta');
+        //updateConnectionStatus('offline', 'Configurazione richiesta');
         showNotification('⚙️ Clicca su "Config" per configurare le API Google Sheets', 'warning');
         
         // Mostra automaticamente il modal di configurazione al primo avvio
