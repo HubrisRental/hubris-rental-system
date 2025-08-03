@@ -754,12 +754,14 @@ window.saveConfig = function() {
 // GOOGLE SHEETS API INITIALIZATION
 function initializeGoogleAPI() {
     if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
-        updateConnectionStatus('offline', 'Configurazione mancante');
-        showNotification('⚙️ Configurazione API mancante - Clicca su Config', 'warning');
+        //updateConnectionStatus('offline', 'Configurazione mancante');
+        console.log('⚙️ Configurazione API mancante - Clicca su Config');
         return;
     }
 
+    if (typeof updateConnectionStatus !== 'undefined') {
     updateConnectionStatus('syncing', 'Connessione in corso...');
+}
     
     // Verifica se gapi è disponibile
     if (typeof gapi === 'undefined') {
