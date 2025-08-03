@@ -4417,40 +4417,7 @@ window.addEventListener('beforeunload', function(e) {
         e.returnValue = '';
     }
 });
-// FIX IMMEDIATO PER I BOTTONI
-document.addEventListener('DOMContentLoaded', function() {
-    // Config button
-    const configBtn = document.getElementById('configBtn');
-    if (configBtn) {
-        configBtn.addEventListener('click', function() {
-            const modal = document.getElementById('configModal');
-            if (modal) {
-                modal.classList.add('active');
-                document.getElementById('apiKeyInput').value = CONFIG.API_KEY || '';
-                document.getElementById('sheetsIdInput').value = CONFIG.SHEETS_ID || '';
-            }
-        });
-    }
-    
-    // Cancel button
-    const cancelBtn = document.getElementById('cancelBtn');
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', function() {
-            const modal = document.getElementById('configModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-        });
-    }
-    
-    // Save button
-    const saveBtn = document.getElementById('saveBtn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-            window.saveConfig();
-        });
-    }
-});
+
 // SISTEMA DI AUTENTICAZIONE
 const CORRECT_PASSWORD = "hubris2020"; // CAMBIA QUESTA PASSWORD
 
@@ -4489,6 +4456,41 @@ function checkAuthentication() {
         document.getElementById('passwordInput').focus();
     }
 }
+
+// FIX IMMEDIATO PER I BOTTONI
+document.addEventListener('DOMContentLoaded', function() {
+    // Config button
+    const configBtn = document.getElementById('configBtn');
+    if (configBtn) {
+        configBtn.addEventListener('click', function() {
+            const modal = document.getElementById('configModal');
+            if (modal) {
+                modal.classList.add('active');
+                document.getElementById('apiKeyInput').value = CONFIG.API_KEY || '';
+                document.getElementById('sheetsIdInput').value = CONFIG.SHEETS_ID || '';
+            }
+        });
+    }
+    
+    // Cancel button
+    const cancelBtn = document.getElementById('cancelBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            const modal = document.getElementById('configModal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
+    
+    // Save button
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            window.saveConfig();
+        });
+    }
+});
 
 // Aggiungi logout nel menu
 function logout() {
