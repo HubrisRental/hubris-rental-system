@@ -390,10 +390,11 @@ input[type="number"]::-webkit-inner-spin-button {
                     <label class="form-label">Nome Preventivo</label>
                     <input type="text" class="form-input" id="quoteName" placeholder="Es: Spot TV Audi Q3">
                 </div>
-                <button class="btn btn-success" onclick="saveQuote()">💾 Salva</button>
-                <button class="btn btn-info" onclick="loadQuote()">📂 Carica</button>
-                <button class="btn btn-warning" onclick="duplicateQuote()">📄 Duplica</button>
-                <button class="btn btn-danger" onclick="resetQuote()">🔄 Reset</button>
+                <button class="btn btn-success" id="saveBtn" onclick="saveQuote()">💾 Salva</button>
+<button class="btn btn-success" id="saveAsNewBtn" onclick="saveAsNew()" style="display: none;">💾 Salva Come Nuovo</button>
+<button class="btn btn-info" onclick="loadQuote()">📂 Carica</button>
+<button class="btn btn-warning" onclick="duplicateQuote()">📄 Duplica</button>
+<button class="btn btn-danger" onclick="resetQuote()">🔄 Reset</button>
             </div>
         </div>
        <div class="form-grid">
@@ -839,6 +840,168 @@ async function loadDatabaseFromSheets() {
         } else {
             showNotification('❌ Errore database: ' + (error.message || 'Sconosciuto'), 'error');
         }
+    }
+}
+
+// FUNZIONI PREVENTIVI GOOGLE SHEETS
+async function saveQuoteToGoogleSheets(quote) {
+    if (!gapi_loaded || !isConnected) {
+        console.log('⚠️ Google Sheets non disponibile, salvo solo in localStorage');
+        return false;
+    }
+
+    try {
+        console.log('💾 Salvataggio preventivo su Google Sheets...');
+        
+        // Prepara i dati per Google Sheets
+        const equipmentJSON = JSON.stringify(quote.equipment);
+        const row = [
+            quote.id,
+            quote.name,
+            quote.cliente || '',
+            quote.clientePiva || '',
+            quote.clienteVia || '',
+            quote.clientePec || '',
+            quote.codiceUnivoco || '',
+            quote.contatti || '',
+            quote.carico || '',
+            quote.scarico || '',
+            quote.durata || '1',
+            quote.sconto || '0',
+            quote.total || 0,
+            quote.status || 'draft',
+            quote.createdAt || '',
+            quote.updatedAt || quote.createdAt || '',
+            equipmentJSON,
+            quote.notes || ''
+        ];
+
+        if (isEditMode && currentQuoteId) {
+            // AGGIORNAMENTO: trova e sostituisci riga esistente
+            const existingRowIndex = await findQuoteRowIndex(currentQuoteId);
+            if (existingRowIndex > 0) {
+                await updateQuoteRow(existingRowIndex, row);
+                console.log('✅ Preventivo aggiornato su Google Sheets');
+                return true;
+            } else {
+                console.log('⚠️ Preventivo non trovato su Google Sheets, aggiungo nuovo');
+            }
+        }
+        
+        // NUOVO PREVENTIVO: aggiungi alla fine
+        await appendQuoteRow(row);
+        console.log('✅ Nuovo preventivo salvato su Google Sheets');
+        return true;
+
+    } catch (error) {
+        console.error('❌ Errore salvataggio Google Sheets:', error);
+        return false;
+    }
+}
+
+async function findQuoteRowIndex(quoteId) {
+    try {
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SHEETS_ID,
+            range: 'Preventivi_Completi!A:A'
+        });
+        
+        if (response.result.values) {
+            for (let i = 1; i < response.result.values.length; i++) {
+                if (response.result.values[i][0] == quoteId) {
+                    return i + 1; // +1 perché le righe sono 1-indexed
+                }
+            }
+        }
+        return -1;
+    } catch (error) {
+        console.error('Errore ricerca preventivo:', error);
+        return -1;
+    }
+}
+
+async function updateQuoteRow(rowIndex, rowData) {
+    await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId: CONFIG.SHEETS_ID,
+        range: `Preventivi_Completi!A${rowIndex}:R${rowIndex}`,
+        valueInputOption: 'RAW',
+        resource: {
+            values: [rowData]
+        }
+    });
+}
+
+async function appendQuoteRow(rowData) {
+    await gapi.client.sheets.spreadsheets.values.append({
+        spreadsheetId: CONFIG.SHEETS_ID,
+        range: 'Preventivi_Completi!A:R',
+        valueInputOption: 'RAW',
+        resource: {
+            values: [rowData]
+        }
+    });
+}
+
+async function loadQuotesFromGoogleSheets() {
+    if (!gapi_loaded || !isConnected) {
+        console.log('⚠️ Google Sheets non disponibile, uso solo localStorage');
+        return false;
+    }
+
+    try {
+        console.log('📂 Caricamento preventivi da Google Sheets...');
+        
+        const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: CONFIG.SHEETS_ID,
+            range: CONFIG.QUOTES_RANGE
+        });
+
+        if (!response.result.values || response.result.values.length <= 1) {
+            console.log('📂 Nessun preventivo trovato su Google Sheets');
+            return true;
+        }
+
+        const sheetsQuotes = [];
+        const rows = response.result.values;
+        
+        // Salta l'header (riga 0)
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row && row.length >= 16) {
+                try {
+                    const quote = {
+                        id: parseInt(row[0]) || Date.now(),
+                        name: row[1] || '',
+                        cliente: row[2] || '',
+                        clientePiva: row[3] || '',
+                        clienteVia: row[4] || '',
+                        clientePec: row[5] || '',
+                        codiceUnivoco: row[6] || '',
+                        contatti: row[7] || '',
+                        carico: row[8] || '',
+                        scarico: row[9] || '',
+                        durata: row[10] || '1',
+                        sconto: row[11] || '0',
+                        total: parseFloat(row[12]) || 0,
+                        status: row[13] || 'draft',
+                        createdAt: row[14] || '',
+                        updatedAt: row[15] || '',
+                        equipment: JSON.parse(row[16] || '[]'),
+                        notes: row[17] || ''
+                    };
+                    sheetsQuotes.push(quote);
+                } catch (parseError) {
+                    console.warn('⚠️ Errore parsing preventivo riga', i + 1, parseError);
+                }
+            }
+        }
+
+        console.log(`✅ ${sheetsQuotes.length} preventivi caricati da Google Sheets`);
+        return sheetsQuotes;
+
+    } catch (error) {
+        console.error('❌ Errore caricamento Google Sheets:', error);
+        return false;
     }
 }
 
@@ -1978,7 +2141,30 @@ function updateUIMode() {
         }
     }
 }
+
+function saveAsNew() {
+    // Forza modalità nuovo preventivo
+    const originalMode = isEditMode;
+    const originalId = currentQuoteId;
     
+    isEditMode = false;
+    currentQuoteId = null;
+    
+    // Chiede nuovo nome
+    const newName = prompt('Nome per il nuovo preventivo:', document.getElementById('quoteName').value + ' - Copia');
+    if (!newName) {
+        // Ripristina modalità originale se annullato
+        isEditMode = originalMode;
+        currentQuoteId = originalId;
+        return;
+    }
+    
+    document.getElementById('quoteName').value = newName;
+    saveQuote(); // Salva come nuovo
+    
+    showNotification('📄 Nuovo preventivo "' + newName + '" creato!', 'success');
+}
+
 function loadQuoteById(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
@@ -2068,6 +2254,9 @@ function loadQuoteById(quoteId) {
     showTab('quotes');
     document.querySelector('[onclick="showTab(\'quotes\')"]').classList.add('active');
     showNotification('✅ Preventivo "' + quote.name + '" caricato con ' + (quote.equipment ? quote.equipment.length : 0) + ' elementi!', 'success');
+    currentQuoteId = quoteId;
+    isEditMode = true;
+    updateUIMode();
 }
     function generateDDTFromQuote(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
@@ -2138,8 +2327,11 @@ function resetQuote() {
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
         document.getElementById('enable-crossed-subtotal').checked = false;
-document.getElementById('crossed-subtotal-input').value = '0';
-toggleCrossedSubtotal();
+        document.getElementById('crossed-subtotal-input').value = '0';
+        toggleCrossedSubtotal();
+        currentQuoteId = null;
+        isEditMode = false;
+        updateUIMode();
     }
 }
 
