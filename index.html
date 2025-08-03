@@ -615,11 +615,17 @@ document.addEventListener('click', function(e) {
         CONFIG.SHEETS_ID = sheetsId;
         localStorage.setItem('hubris_api_key', apiKey);
         localStorage.setItem('hubris_sheets_id', sheetsId);
+
         document.getElementById('configModal').classList.remove('active');
-        alert('Configurazione salvata! Ricarica la pagina.');
-        location.reload();
-    }
-});
+        showNotification('✅ Configurazione salvata!', 'success');
+
+        // Invece di ricaricare, inizializza direttamente le API
+        CONFIG.API_KEY = apiKey;
+        CONFIG.SHEETS_ID = sheetsId;
+        setTimeout(() => {
+        initializeGoogleAPI();
+        }, 1000);
+        });
 // CONFIGURAZIONE GLOBALE - CON I TUOI DATI
 let CONFIG = {
     API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
@@ -4344,12 +4350,24 @@ function duplicateQuote() {
 }
 
 // INITIALIZATION
-// INITIALIZATION MIGLIORATA
 window.addEventListener('load', function() {
-    checkAuthentication();
+    // Prima controlla se siamo autenticati
+    const isAuthenticated = localStorage.getItem('hubris_authenticated');
+    if (isAuthenticated !== 'true') {
+        // Se non siamo autenticati, mostra il login
+        document.getElementById('loginOverlay').style.display = 'flex';
+        if (document.getElementById('passwordInput')) {
+            document.getElementById('passwordInput').focus();
+        }
+        return; // Esci qui se non autenticato
+    }
+    
+    // Se siamo autenticati, nascondi il login e continua
+    document.getElementById('loginOverlay').style.display = 'none';
+    
     console.log('🚀 Inizializzazione sistema Hubris Rental...');
     
-    // Carica configurazione salvata
+    // Carica configurazione salvata (NON DUPLICARE QUESTE RIGHE!)
     const savedApiKey = localStorage.getItem('hubris_api_key');
     const savedSheetsId = localStorage.getItem('hubris_sheets_id');
     
@@ -4502,6 +4520,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
 // Event listener per il bottone di login
 document.addEventListener('DOMContentLoaded', function() {
     const loginButton = document.getElementById('loginButton');
@@ -4509,7 +4528,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loginButton.addEventListener('click', checkPassword);
     }
 });
-}
+
 </script>
 </body>
 </html>
