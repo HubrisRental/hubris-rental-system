@@ -619,7 +619,7 @@ document.addEventListener('click', function(e) {
         localStorage.setItem('hubris_sheets_id', sheetsId);
         
         document.getElementById('configModal').classList.remove('active');
-        showNotification('✅ Configurazione salvata!', 'success');
+        alert('✅ Configurazione salvata!');
         
         // Invece di ricaricare, inizializza direttamente le API
         CONFIG.API_KEY = apiKey;
