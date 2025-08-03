@@ -596,6 +596,8 @@ let CONFIG = {
     QUOTES_RANGE: 'Preventivi_Completi!A:R' // Nuovo range per preventivi completi
 };
 
+const CORRECT_PASSWORD = "hubris2020"; 
+
 // STATO GLOBALE
 let equipmentDatabase = {};
 let savedQuotes = [];
@@ -606,7 +608,6 @@ let currentQuoteId = null;
 let isEditMode = false;
 
 // SISTEMA DI AUTENTICAZIONE 
-const CORRECT_PASSWORD = "hubris2020"; 
 
 function checkPassword() {
     const inputPassword = document.getElementById('passwordInput').value;
