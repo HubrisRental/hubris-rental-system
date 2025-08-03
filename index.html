@@ -1808,7 +1808,7 @@ function removeRow(rowId) {
     }
 }
 
-async function saveQuote() {
+function saveQuote() {
     const quoteName = document.getElementById('quoteName').value;
     if (!quoteName) {
         showNotification('❌ Inserisci un nome per il preventivo!', 'error');
@@ -1924,25 +1924,30 @@ async function saveQuote() {
     // 1. Salva sempre in localStorage (immediato)
     localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
     
-    // 2. Prova a salvare su Google Sheets (asincrono)
-    const googleSaveSuccess = await saveQuoteToGoogleSheets(quote);
-    
-    // Aggiorna UI
-    renderSavedQuotes();
-    updateAnalytics();
-    
-    // Notifica appropriata
-    if (isEditMode) {
-        const syncStatus = googleSaveSuccess ? '✅ aggiornato e sincronizzato' : '⚠️ aggiornato (sync in corso)';
-        showNotification(`Preventivo "${quoteName}" ${syncStatus}!`, googleSaveSuccess ? 'success' : 'warning');
+  // 2. Salva su Google Sheets in background
+saveQuoteToGoogleSheets(quote).then(googleSaveSuccess => {
+    if (googleSaveSuccess) {
+        console.log('✅ Sincronizzazione Google Sheets completata');
     } else {
-        const syncStatus = googleSaveSuccess ? '✅ salvato e sincronizzato' : '⚠️ salvato (sync in corso)';
-        showNotification(`Nuovo preventivo "${quoteName}" ${syncStatus}!`, googleSaveSuccess ? 'success' : 'warning');
-        // Entra in modalità modifica dopo il primo salvataggio
-        currentQuoteId = quote.id;
-        isEditMode = true;
-        updateUIMode();
+        console.log('⚠️ Sincronizzazione Google Sheets fallita');
     }
+}).catch(error => {
+    console.error('❌ Errore sincronizzazione:', error);
+});
+
+// Aggiorna UI (sempre immediato)
+renderSavedQuotes();
+updateAnalytics();
+
+// Notifica di salvataggio (sempre successo locale)
+if (isEditMode) {
+    showNotification(`✅ Preventivo "${quoteName}" aggiornato!`, 'success');
+} else {
+    showNotification(`✅ Nuovo preventivo "${quoteName}" salvato!`, 'success');
+    // Entra in modalità modifica dopo il primo salvataggio
+    currentQuoteId = quote.id;
+    isEditMode = true;
+    updateUIMode();
 }
     
 function loadQuoteById(quoteId) {
