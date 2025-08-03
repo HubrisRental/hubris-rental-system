@@ -1949,6 +1949,35 @@ if (isEditMode) {
     isEditMode = true;
     updateUIMode();
 }
+
+function updateUIMode() {
+    const saveBtn = document.getElementById('saveBtn');
+    const saveAsNewBtn = document.getElementById('saveAsNewBtn');
+    const sectionTitle = document.querySelector('.section-title');
+    
+    if (isEditMode && currentQuoteId) {
+        // MODALITÀ MODIFICA
+        saveBtn.innerHTML = '✏️ Aggiorna';
+        saveBtn.className = 'btn btn-warning';
+        if (saveAsNewBtn) saveAsNewBtn.style.display = 'inline-block';
+        
+        const quoteName = document.getElementById('quoteName').value;
+        if (sectionTitle) {
+            sectionTitle.textContent = 'Modifica Preventivo: ' + quoteName;
+            sectionTitle.style.color = '#ff9800';
+        }
+    } else {
+        // MODALITÀ NUOVO
+        saveBtn.innerHTML = '💾 Salva';
+        saveBtn.className = 'btn btn-success';
+        if (saveAsNewBtn) saveAsNewBtn.style.display = 'none';
+        
+        if (sectionTitle) {
+            sectionTitle.textContent = 'Nuovo Preventivo';
+            sectionTitle.style.color = '#2c5aa0';
+        }
+    }
+}
     
 function loadQuoteById(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
@@ -4230,8 +4259,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-    // SISTEMA DI AUTENTICAZIONE
-const CORRECT_PASSWORD = "Hubris2020"; // CAMBIA QUESTA PASSWORD
+// SISTEMA DI AUTENTICAZIONE
+const CORRECT_PASSWORD = "hubris2020"; // CAMBIA QUESTA PASSWORD
 
 function checkPassword() {
     const inputPassword = document.getElementById('passwordInput').value;
