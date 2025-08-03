@@ -605,6 +605,51 @@ let rowCounter = 0;
 let currentQuoteId = null;
 let isEditMode = false;
 
+// SISTEMA DI AUTENTICAZIONE 
+const CORRECT_PASSWORD = "hubris2020"; 
+
+function checkPassword() {
+    const inputPassword = document.getElementById('passwordInput').value;
+    const errorDiv = document.getElementById('loginError');
+    
+    if (inputPassword === CORRECT_PASSWORD) {
+        document.getElementById('loginOverlay').style.display = 'none';
+        localStorage.setItem('hubris_authenticated', 'true');
+        // showNotification sarà disponibile dopo
+        console.log('✅ Accesso autorizzato!');
+    } else {
+        errorDiv.style.display = 'block';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function checkEnter(event) {
+    if (event.key === 'Enter') {
+        checkPassword();
+    }
+}
+
+function checkAuthentication() {
+    const isAuthenticated = localStorage.getItem('hubris_authenticated');
+    if (isAuthenticated === 'true') {
+        document.getElementById('loginOverlay').style.display = 'none';
+    } else {
+        document.getElementById('loginOverlay').style.display = 'flex';
+        if (document.getElementById('passwordInput')) {
+            document.getElementById('passwordInput').focus();
+        }
+    }
+}
+
+function logout() {
+    localStorage.removeItem('hubris_authenticated');
+    location.reload();
+}
+    
 // CONFIGURATION MODAL FUNCTIONS
 // CONFIGURATION MODAL FUNCTIONS - GLOBALI
 window.showConfigModal = function() {
@@ -4419,51 +4464,6 @@ window.addEventListener('beforeunload', function(e) {
         e.returnValue = '';
     }
 });
-
-// SISTEMA DI AUTENTICAZIONE
-const CORRECT_PASSWORD = "hubris2020"; // Password minuscola
-
-function checkPassword() {
-    const inputPassword = document.getElementById('passwordInput').value;
-    const errorDiv = document.getElementById('loginError');
-    
-    if (inputPassword === CORRECT_PASSWORD) {
-        document.getElementById('loginOverlay').style.display = 'none';
-        localStorage.setItem('hubris_authenticated', 'true');
-        // showNotification sarà disponibile dopo
-        console.log('✅ Accesso autorizzato!');
-    } else {
-        errorDiv.style.display = 'block';
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('passwordInput').focus();
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-        }, 3000);
-    }
-}
-
-function checkEnter(event) {
-    if (event.key === 'Enter') {
-        checkPassword();
-    }
-}
-
-function checkAuthentication() {
-    const isAuthenticated = localStorage.getItem('hubris_authenticated');
-    if (isAuthenticated === 'true') {
-        document.getElementById('loginOverlay').style.display = 'none';
-    } else {
-        document.getElementById('loginOverlay').style.display = 'flex';
-        if (document.getElementById('passwordInput')) {
-            document.getElementById('passwordInput').focus();
-        }
-    }
-}
-
-function logout() {
-    localStorage.removeItem('hubris_authenticated');
-    location.reload();
-}
 
 // FIX IMMEDIATO PER I BOTTONI
 document.addEventListener('DOMContentLoaded', function() {
