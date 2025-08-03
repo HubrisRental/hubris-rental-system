@@ -297,7 +297,7 @@ input[type="number"]::-webkit-inner-spin-button {
         <h2>HUBRIS RENTAL - ACCESSO</h2>
         <input type="password" id="passwordInput" class="login-input" placeholder="Inserisci la password" onkeypress="checkEnter(event)">
         <div id="loginError" class="login-error" style="display: none;">Password errata!</div>
-        <button class="btn btn-primary" onclick="checkPassword()" style="width: 100%; margin-top: 15px;">🔓 ACCEDI</button>
+       <button class="btn btn-primary" id="loginButton" style="width: 100%; margin-top: 15px;">🔐 ACCEDI</button>
         <p style="font-size: 12px; color: #666; margin-top: 20px;">Sistema interno Hubris Pictures</p>
     </div>
 </div>
@@ -4500,7 +4500,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
+// Event listener per il bottone di login
+document.addEventListener('DOMContentLoaded', function() {
+    const loginButton = document.getElementById('loginButton');
+    if (loginButton) {
+        loginButton.addEventListener('click', checkPassword);
+    }
+});
 </script>
 </body>
 </html>
