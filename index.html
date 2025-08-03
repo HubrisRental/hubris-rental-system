@@ -689,20 +689,20 @@ window.saveConfig = function() {
     
         // Validazione input
     if (!apiKey || !sheetsId) {
-        showNotification('❌ Inserisci API Key e Sheets ID', 'error');
+        console.log('❌ Inserisci API Key e Sheets ID', 'error');
         return;
     }
     
     // Validazione formato API Key (deve iniziare con AIza)
     if (!apiKey.startsWith('AIza') || apiKey.length < 39) {
-        showNotification('❌ API Key non valida (deve iniziare con AIza e avere 39 caratteri)', 'error');
-        showNotification('💡 Genera una nuova API Key da Google Cloud Console', 'info');
+        console.log('❌ API Key non valida (deve iniziare con AIza e avere 39 caratteri)', 'error');
+        console.log('💡 Genera una nuova API Key da Google Cloud Console', 'info');
         return;
     }
     
     // Validazione formato Sheets ID (lunghezza minima)
     if (sheetsId.length < 20 || sheetsId.includes(' ')) {
-        showNotification('❌ Sheets ID non valido (controlla di non avere spazi)', 'error');
+        console.log('❌ Sheets ID non valido (controlla di non avere spazi)', 'error');
         return;
     }
     
@@ -721,7 +721,7 @@ window.saveConfig = function() {
         localStorage.setItem('hubris_sheets_id', sheetsId);
         
         closeConfigModal();
-        showNotification('⚙️ Configurazione salvata. Test connessione...', 'info');
+        console.log('⚙️ Configurazione salvata. Test connessione...', 'info');
         
         // Test immediato della configurazione
         if (typeof gapi !== 'undefined' && gapi.client) {
@@ -734,7 +734,7 @@ window.saveConfig = function() {
                 initializeGoogleAPI();
             }).catch((error) => {
                 console.error('❌ Errore reinizializzazione:', error);
-                showNotification('❌ Errore: API Key non valida', 'error');
+                console.log('❌ Errore: API Key non valida', 'error');
             });
         } else {
             // Altrimenti inizializza normalmente
@@ -746,7 +746,7 @@ window.saveConfig = function() {
         
     } catch (error) {
         console.error('❌ Errore salvataggio configurazione:', error);
-        showNotification('❌ Errore nel salvataggio della configurazione', 'error');
+        console.log('❌ Errore nel salvataggio della configurazione', 'error');
     }
 
 }
@@ -767,7 +767,7 @@ function initializeGoogleAPI() {
     if (typeof gapi === 'undefined') {
         console.error('Google API non caricata');
         //updateConnectionStatus('offline', 'Google API non disponibile');
-        showNotification('❌ Google API non caricata. Ricaricare la pagina.', 'error');
+        console.log('❌ Google API non caricata. Ricaricare la pagina.', 'error');
         return;
     }
 
@@ -796,18 +796,18 @@ function initializeGoogleAPI() {
                         console.log('✅ Google Sheet verificato:', testResponse.result.properties.title);
                         await loadDatabaseFromSheets();
                         await loadQuotesFromSheets();
-                        showNotification('✅ Connessione Google Sheets stabilita!', 'success');
+                        console.log('✅ Connessione Google Sheets stabilita!', 'success');
                     }
                 } catch (loadError) {
                     console.error('Errore caricamento dati:', loadError);
                     
                     if (loadError.status === 403) {
-                        showNotification('❌ API Key non valida o senza permessi', 'error');
-                        showNotification('💡 Genera una nuova API Key da Google Cloud Console', 'info');
+                        console.log('❌ API Key non valida o senza permessi', 'error');
+                        console.log('💡 Genera una nuova API Key da Google Cloud Console', 'info');
                     } else if (loadError.status === 404) {
-                        showNotification('❌ Google Sheet non trovato o non condiviso', 'error');
+                        console.log('❌ Google Sheet non trovato o non condiviso', 'error');
                     } else {
-                        showNotification('⚠️ Connesso ma errore nel caricamento dati', 'warning');
+                        console.log('⚠️ Connesso ma errore nel caricamento dati', 'warning');
                     }
                 }
                 
@@ -820,19 +820,19 @@ function initializeGoogleAPI() {
                 
                 // Messaggi di errore più specifici
                 if (error.error && error.error.code === 400) {
-                    showNotification('❌ API Key non valida - Verificare configurazione', 'error');
-                    showNotification('💡 Vai su Config e inserisci una API Key valida', 'info');
+                    console.log('❌ API Key non valida - Verificare configurazione', 'error');
+                    console.log('💡 Vai su Config e inserisci una API Key valida', 'info');
                 } else if (error.message && error.message.includes('API key not valid')) {
-                    showNotification('❌ API Key non valida o disabilitata', 'error');
+                    console.log('❌ API Key non valida o disabilitata', 'error');
                 } else {
-                    showNotification('❌ Errore connessione: ' + (error.message || 'Sconosciuto'), 'error');
+                    console.log('❌ Errore connessione: ' + (error.message || 'Sconosciuto'), 'error');
                 }
             }
         },
         onerror: (error) => {
             console.error('Errore caricamento gapi:', error);
             //updateConnectionStatus('offline', 'Errore caricamento API');
-            showNotification('❌ Errore nel caricamento delle API Google', 'error');
+            console.log('❌ Errore nel caricamento delle API Google', 'error');
         }
     });
 }
@@ -880,7 +880,7 @@ async function loadDatabaseFromSheets() {
             itemsCount += Object.keys(cat).length;
         });
 
-        showNotification(`✅ Database caricato: ${categoriesCount} categorie, ${itemsCount} articoli`, 'success');
+        console.log(`✅ Database caricato: ${categoriesCount} categorie, ${itemsCount} articoli`, 'success');
         console.log('✅ Database processato con successo');
 
     } catch (error) {
@@ -889,18 +889,18 @@ async function loadDatabaseFromSheets() {
         
         // Messaggi di errore più specifici
         if (error.status === 403) {
-            showNotification('❌ Accesso negato. Verificare:', 'error');
-            showNotification('1️⃣ API Key abilitata per Sheets API', 'info');
-            showNotification('2️⃣ Google Sheet condiviso pubblicamente', 'info');
+            console.log('❌ Accesso negato. Verificare:', 'error');
+            console.log('1️⃣ API Key abilitata per Sheets API', 'info');
+            console.log('2️⃣ Google Sheet condiviso pubblicamente', 'info');
         } else if (error.status === 404) {
-            showNotification('❌ Google Sheet non trovato. Verificare ID.', 'error');
+            console.log('❌ Google Sheet non trovato. Verificare ID.', 'error');
         } else if (error.status === 400) {
-            showNotification('❌ Richiesta non valida. Verificare range: ' + CONFIG.DATABASE_RANGE, 'error');
+            console.log('❌ Richiesta non valida. Verificare range: ' + CONFIG.DATABASE_RANGE, 'error');
         } else if (error.message && error.message.includes('API key not valid')) {
-            showNotification('❌ API Key non valida o disabilitata', 'error');
-            showNotification('💡 Genera una nuova API Key da Google Cloud Console', 'info');
+            console.log('❌ API Key non valida o disabilitata', 'error');
+            console.log('💡 Genera una nuova API Key da Google Cloud Console', 'info');
         } else {
-            showNotification('❌ Errore database: ' + (error.message || 'Sconosciuto'), 'error');
+            console.log('❌ Errore database: ' + (error.message || 'Sconosciuto'), 'error');
         }
     }
 }
@@ -1120,7 +1120,7 @@ async function loadQuotesFromSheets() {
     updateAnalytics();
     
     if (savedQuotes.length > 0) {
-        showNotification(`📂 ${savedQuotes.length} preventivi caricati`, 'success');
+        console.log(`📂 ${savedQuotes.length} preventivi caricati`, 'success');
     }
 }
 
@@ -1129,7 +1129,7 @@ async function saveQuoteToSheets(quote) {
     localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
     
     if (!gapi_loaded || !isConnected) {
-        showNotification('💾 Preventivo salvato localmente - sincronizzazione quando connesso', 'warning');
+        console.log('💾 Preventivo salvato localmente - sincronizzazione quando connesso', 'warning');
         return;
     }
     try {
@@ -1144,10 +1144,10 @@ async function saveQuoteToSheets(quote) {
             valueInputOption: 'RAW',
             resource: { values: [quoteRow] }
         });
-        showNotification('✅ Preventivo salvato su Google Sheets', 'success');
+        console.log('✅ Preventivo salvato su Google Sheets', 'success');
     } catch (error) {
         console.error('Errore salvataggio:', error);
-        showNotification('❌ Errore salvataggio su Google Sheets, salvato localmente', 'error');
+        console.log('❌ Errore salvataggio su Google Sheets, salvato localmente', 'error');
     }
 }
 
@@ -1157,7 +1157,7 @@ function processEquipmentData(values) {
     
     if (!values || !Array.isArray(values) || values.length < 2) {
         console.error('❌ Dati non validi per processamento');
-        showNotification('❌ Formato dati database non valido', 'error');
+        console.log('❌ Formato dati database non valido', 'error');
         return;
     }
     
@@ -1227,7 +1227,7 @@ function processEquipmentData(values) {
     // Verifica che ci siano dati processati
     if (processedRows === 0) {
         console.error('❌ Nessun articolo processato dal database');
-        showNotification('❌ Nessun articolo trovato nel database', 'error');
+        console.log('❌ Nessun articolo trovato nel database', 'error');
         return;
     }
     
@@ -1451,7 +1451,7 @@ async function saveQuoteToGoogleSheets(quote) {
 
     } catch (error) {
         console.error('❌ Errore salvataggio Google Sheets:', error);
-        showNotification('⚠️ Errore sync Google Sheets, salvato localmente', 'warning');
+        console.log('⚠️ Errore sync Google Sheets, salvato localmente', 'warning');
         return false;
     }
 }
@@ -1565,7 +1565,7 @@ async function loadQuotesFromGoogleSheets() {
 // NUOVA FUNZIONE - TEST CONNESSIONE
 async function testConnection() {
     if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
-        showNotification('⚙️ Configurazione mancante per il test', 'warning');
+        console.log('⚙️ Configurazione mancante per il test', 'warning');
         return false;
     }
     
@@ -1582,7 +1582,7 @@ async function testConnection() {
         if (response && response.result) {
             console.log('✅ Test connessione riuscito');
             //updateConnectionStatus('online', 'Connesso e testato');
-            showNotification('✅ Connessione Google Sheets verificata!', 'success');
+            console.log('✅ Connessione Google Sheets verificata!', 'success');
             return true;
         } else {
             throw new Error('Risposta vuota dal test');
@@ -1594,13 +1594,13 @@ async function testConnection() {
         
         // Messaggi di errore specifici
         if (error.message.includes('API_KEY_INVALID')) {
-            showNotification('❌ API Key non valida', 'error');
+            console.log('❌ API Key non valida', 'error');
         } else if (error.message.includes('PERMISSION_DENIED')) {
-            showNotification('❌ Accesso negato - verificare condivisione Sheet', 'error');
+            console.log('❌ Accesso negato - verificare condivisione Sheet', 'error');
         } else if (error.message.includes('NOT_FOUND')) {
-            showNotification('❌ Google Sheet non trovato', 'error');
+            console.log('❌ Google Sheet non trovato', 'error');
         } else {
-            showNotification('❌ Test connessione fallito: ' + error.message, 'error');
+            console.log('❌ Test connessione fallito: ' + error.message, 'error');
         }
         
         return false;
@@ -1609,7 +1609,7 @@ async function testConnection() {
 // QUOTE MANAGEMENT
 function addEquipmentRow() {
     if (Object.keys(equipmentDatabase).length === 0) {
-        showNotification('⚠️ Carica prima il database delle attrezzature', 'warning');
+        console.log('⚠️ Carica prima il database delle attrezzature', 'warning');
         return;
     }
     rowCounter++;
@@ -2036,7 +2036,7 @@ function removeRow(rowId) {
 function saveQuote() {
     const quoteName = document.getElementById('quoteName').value;
     if (!quoteName) {
-        showNotification('❌ Inserisci un nome per il preventivo!', 'error');
+        console.log('❌ Inserisci un nome per il preventivo!', 'error');
         return;
     }
     
@@ -2046,7 +2046,7 @@ function saveQuote() {
         // MODALITÀ AGGIORNAMENTO
         const existingIndex = savedQuotes.findIndex(q => q.id === currentQuoteId);
         if (existingIndex === -1) {
-            showNotification('❌ Preventivo originale non trovato!', 'error');
+            console.log('❌ Preventivo originale non trovato!', 'error');
             return;
         }
         
@@ -2166,9 +2166,9 @@ updateAnalytics();
 
 // Notifica di salvataggio (sempre successo locale)
 if (isEditMode) {
-    showNotification(`✅ Preventivo "${quoteName}" aggiornato!`, 'success');
+    console.log(`✅ Preventivo "${quoteName}" aggiornato!`, 'success');
 } else {
-    showNotification(`✅ Nuovo preventivo "${quoteName}" salvato!`, 'success');
+    console.log(`✅ Nuovo preventivo "${quoteName}" salvato!`, 'success');
     // Entra in modalità modifica dopo il primo salvataggio
     currentQuoteId = quote.id;
     isEditMode = true;
@@ -2224,13 +2224,13 @@ function saveAsNew() {
     document.getElementById('quoteName').value = newName;
     saveQuote(); // Salva come nuovo
     
-    showNotification('📄 Nuovo preventivo "' + newName + '" creato!', 'success');
+    console.log('📄 Nuovo preventivo "' + newName + '" creato!', 'success');
 }
 
 function loadQuoteById(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
-        showNotification('❌ Preventivo non trovato!', 'error');
+        console.log('❌ Preventivo non trovato!', 'error');
         return;
     }
     
@@ -2315,7 +2315,7 @@ function loadQuoteById(quoteId) {
     // Switch to quotes tab
     showTab('quotes');
     document.querySelector('[onclick="showTab(\'quotes\')"]').classList.add('active');
-    showNotification('✅ Preventivo "' + quote.name + '" caricato con ' + (quote.equipment ? quote.equipment.length : 0) + ' elementi!', 'success');
+    console.log('✅ Preventivo "' + quote.name + '" caricato con ' + (quote.equipment ? quote.equipment.length : 0) + ' elementi!', 'success');
     currentQuoteId = quoteId;
     isEditMode = true;
     updateUIMode();
@@ -2323,7 +2323,7 @@ function loadQuoteById(quoteId) {
     function generateDDTFromQuote(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
-        showNotification('❌ Preventivo non trovato!', 'error');
+        console.log('❌ Preventivo non trovato!', 'error');
         return;
     }
     
@@ -2360,7 +2360,7 @@ function duplicateQuoteById(quoteId) {
     if (!quote) return;
     loadQuoteById(quoteId);
     document.getElementById('quoteName').value = quote.name + ' - Copia';
-    showNotification('📄 Preventivo duplicato! Modifica il nome e salva.', 'info');
+    console.log('📄 Preventivo duplicato! Modifica il nome e salva.', 'info');
 }
 
 function deleteQuote(quoteId) {
@@ -2371,7 +2371,7 @@ function deleteQuote(quoteId) {
         localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
         renderSavedQuotes();
         updateAnalytics();
-        showNotification('🗑️ Preventivo eliminato', 'info');
+        console.log('🗑️ Preventivo eliminato', 'info');
     }
 }
 
@@ -2387,7 +2387,7 @@ function resetQuote() {
         document.getElementById('sconto').value = '0';
         document.getElementById('quoteName').value = '';
         updateTotals();
-        showNotification('🔄 Preventivo resettato', 'info');
+        console.log('🔄 Preventivo resettato', 'info');
         document.getElementById('enable-crossed-subtotal').checked = false;
         document.getElementById('crossed-subtotal-input').value = '0';
         toggleCrossedSubtotal();
@@ -2434,7 +2434,7 @@ function syncDatabase() {
     const btn = document.getElementById('syncBtn');
     
     if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
-        showNotification('⚙️ Configurazione API mancante', 'warning');
+        console.log('⚙️ Configurazione API mancante', 'warning');
         return;
     }
     
@@ -2444,15 +2444,15 @@ function syncDatabase() {
     }
     
     console.log('🔄 Sync manuale database avviato...');
-    showNotification('🔄 Sincronizzazione database in corso...', 'info');
+    console.log('🔄 Sincronizzazione database in corso...', 'info');
     
     loadDatabaseFromSheets()
         .then(() => {
-            showNotification('✅ Database sincronizzato con successo!', 'success');
+            console.log('✅ Database sincronizzato con successo!', 'success');
         })
         .catch((error) => {
             console.error('❌ Errore sync database:', error);
-            showNotification('❌ Errore nella sincronizzazione database', 'error');
+            console.log('❌ Errore nella sincronizzazione database', 'error');
         })
         .finally(() => {
             if (btn) {
@@ -2463,9 +2463,9 @@ function syncDatabase() {
 }
 
 function syncQuotes() {
-    showNotification('🔄 Aggiornamento preventivi...', 'info');
+    console.log('🔄 Aggiornamento preventivi...', 'info');
     loadQuotesFromSheets().then(() => {
-        showNotification('✅ Preventivi aggiornati!', 'success');
+        console.log('✅ Preventivi aggiornati!', 'success');
     });
 }
 
@@ -2516,7 +2516,7 @@ function updateSyncTime() {
     console.log('⏰ Sync time aggiornato:', timeString);
 }
 
-function showNotification(message, type) {
+function console.log(message, type) {
     const notification = document.createElement('div');
     notification.className = 'notification ' + (type || 'info');
     notification.textContent = message;
@@ -2870,11 +2870,11 @@ if (servicesData.length > 0) {
         const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_' + quoteNumber + '.pdf';
         doc.save(fileName);
         
-        showNotification('✅ PDF preventivo generato: ' + quoteNumber, 'success');
+        console.log('✅ PDF preventivo generato: ' + quoteNumber, 'success');
         
     } catch (error) {
         console.error('Errore generazione PDF:', error);
-        showNotification('❌ Errore nella generazione del PDF: ' + error.message, 'error');
+        console.log('❌ Errore nella generazione del PDF: ' + error.message, 'error');
     }
 }
     
@@ -3100,11 +3100,11 @@ doc.rect(110, 55, 85, 45);
         const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_DDT_' + ddtNumber + '.pdf';
         doc.save(fileName);
         
-        showNotification('✅ DDT generato: ' + ddtNumber, 'success');
+        console.log('✅ DDT generato: ' + ddtNumber, 'success');
         
     } catch (error) {
         console.error('Errore generazione DDT:', error);
-        showNotification('❌ Errore nella generazione del DDT', 'error');
+        console.log('❌ Errore nella generazione del DDT', 'error');
     }
 }
 
@@ -3393,7 +3393,7 @@ doc.rect(110, 55, 85, 45);
     link.download = quoteName.replace(/[^a-z0-9]/gi, '_') + '_' + quoteNumber + '.html';
     link.click();
     
-    showNotification('✅ Documento Word generato! Aprilo con Microsoft Word.', 'success');
+    console.log('✅ Documento Word generato! Aprilo con Microsoft Word.', 'success');
 }
     
 function generateNoPricesQuote() {
@@ -3697,11 +3697,11 @@ if (servicesData.length > 0) {
         const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_SenzaPrezzi_' + quoteNumber + '.pdf';
         doc.save(fileName);
         
-        showNotification('✅ Preventivo senza prezzi generato: ' + quoteNumber, 'success');
+        console.log('✅ Preventivo senza prezzi generato: ' + quoteNumber, 'success');
         
     } catch (error) {
         console.error('Errore generazione PDF senza prezzi:', error);
-        showNotification('❌ Errore nella generazione del PDF', 'error');
+        console.log('❌ Errore nella generazione del PDF', 'error');
     }
 }
 
@@ -3959,17 +3959,17 @@ doc.rect(110, 55, 85, 45);
         const fileName = quoteName.replace(/[^a-z0-9]/gi, '_') + '_ValoriAssicurativi_' + docNumber + '.pdf';
         doc.save(fileName);
         
-        showNotification('✅ Documento valori assicurativi generato: ' + docNumber, 'success');
+        console.log('✅ Documento valori assicurativi generato: ' + docNumber, 'success');
         
     } catch (error) {
         console.error('Errore generazione valori assicurativi:', error);
-        showNotification('❌ Errore nella generazione del documento: ' + error.message, 'error');
+        console.log('❌ Errore nella generazione del documento: ' + error.message, 'error');
     }
 }
     function generateQuotePDF(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
-        showNotification('❌ Preventivo non trovato!', 'error');
+        console.log('❌ Preventivo non trovato!', 'error');
         return;
     }
     
@@ -4102,11 +4102,11 @@ function generateAnalyticsReport() {
         }
         
         doc.save('Hubris_Analytics_Report.pdf');
-        showNotification('✅ Report analytics generato!', 'success');
+        console.log('✅ Report analytics generato!', 'success');
         
     } catch (error) {
         console.error('Errore generazione report:', error);
-        showNotification('❌ Errore nella generazione del report', 'error');
+        console.log('❌ Errore nella generazione del report', 'error');
     }
 }
 
@@ -4180,11 +4180,11 @@ function exportAllQuotes() {
         }
         
         doc.save('Hubris_Export_Tutti_Preventivi.pdf');
-        showNotification('✅ Export completo generato!', 'success');
+        console.log('✅ Export completo generato!', 'success');
         
     } catch (error) {
         console.error('Errore export:', error);
-        showNotification('❌ Errore nell\'export', 'error');
+        console.log('❌ Errore nell\'export', 'error');
     }
 }
 
@@ -4271,7 +4271,7 @@ function addNewEquipment() {
             price1, price3, price7, insurance, kit, notes: ''
         };
     } else {
-        showNotification('❌ Categoria non trovata!', 'error');
+        console.log('❌ Categoria non trovata!', 'error');
         return;
     }
     
@@ -4291,12 +4291,12 @@ function addNewEquipment() {
     renderDatabase(processedData);
     updateCategoryFilter();
     updateDbStats();
-    showNotification('✅ Attrezzatura "' + newName + '" aggiunta!', 'success');
+    console.log('✅ Attrezzatura "' + newName + '" aggiunta!', 'success');
 }
 
 function editEquipment(category, name) {
     if (!equipmentDatabase[category] || !equipmentDatabase[category][name]) {
-        showNotification('❌ Attrezzatura non trovata!', 'error');
+        console.log('❌ Attrezzatura non trovata!', 'error');
         return;
     }
     
@@ -4332,27 +4332,27 @@ function editEquipment(category, name) {
     });
     
     renderDatabase(processedData);
-    showNotification('✅ Attrezzatura "' + name + '" modificata!', 'success');
+    console.log('✅ Attrezzatura "' + name + '" modificata!', 'success');
 }
 
 function loadQuote() {
     if (savedQuotes.length === 0) {
-        showNotification('❌ Nessun preventivo salvato!', 'error');
+        console.log('❌ Nessun preventivo salvato!', 'error');
         return;
     }
     showTab('saved');
     document.querySelector('[onclick="showTab(\'saved\')"]').classList.add('active');
-    showNotification('📂 Seleziona un preventivo dalla lista', 'info');
+    console.log('📂 Seleziona un preventivo dalla lista', 'info');
 }
 
 function duplicateQuote() {
     const quoteName = document.getElementById('quoteName').value;
     if (!quoteName) {
-        showNotification('❌ Nessun preventivo da duplicare!', 'error');
+        console.log('❌ Nessun preventivo da duplicare!', 'error');
         return;
     }
     document.getElementById('quoteName').value = quoteName + ' - Copia';
-    showNotification('📄 Preventivo duplicato! Modifica il nome e salva.', 'info');
+    console.log('📄 Preventivo duplicato! Modifica il nome e salva.', 'info');
 }
 
 // INITIALIZATION
@@ -4405,7 +4405,7 @@ window.addEventListener('load', function() {
         if (!CONFIG.API_KEY.startsWith('AIza') || CONFIG.API_KEY.length < 39) {
             console.error('❌ API Key non valida nel formato');
             //updateConnectionStatus('offline', 'API Key non valida');
-            showNotification('❌ API Key non valida - Clicca su Config per aggiornare', 'error');
+            console.log('❌ API Key non valida - Clicca su Config per aggiornare', 'error');
             return;
         }
         
@@ -4416,7 +4416,7 @@ window.addEventListener('load', function() {
     } else {
         console.log('⚙️ Configurazione incompleta, modalità offline');
         //updateConnectionStatus('offline', 'Configurazione richiesta');
-        showNotification('⚙️ Clicca su "Config" per configurare le API Google Sheets', 'warning');
+        console.log('⚙️ Clicca su "Config" per configurare le API Google Sheets', 'warning');
         
         // Mostra automaticamente il modal di configurazione al primo avvio
         if (!savedApiKey && !savedSheetsId) {
@@ -4447,11 +4447,11 @@ window.addEventListener('error', function(e) {
     // Errori specifici Google API
     if (e.error && e.error.message) {
         if (e.error.message.includes('gapi')) {
-            showNotification('⚠️ Errore Google API - ricaricare la pagina', 'warning');
+            console.log('⚠️ Errore Google API - ricaricare la pagina', 'warning');
         } else if (e.error.message.includes('jsPDF')) {
-            showNotification('⚠️ Errore generazione PDF', 'warning');
+            console.log('⚠️ Errore generazione PDF', 'warning');
         } else {
-            showNotification('❌ Errore del sistema. Verifica console.', 'error');
+            console.log('❌ Errore del sistema. Verifica console.', 'error');
         }
     }
 });
@@ -4463,11 +4463,11 @@ window.addEventListener('unhandledrejection', function(e) {
     // Errori API Google Sheets specifici
     if (e.reason && e.reason.message) {
         if (e.reason.message.includes('PERMISSION_DENIED')) {
-            showNotification('❌ Accesso negato a Google Sheets', 'error');
+            console.log('❌ Accesso negato a Google Sheets', 'error');
         } else if (e.reason.message.includes('NOT_FOUND')) {
-            showNotification('❌ Google Sheet non trovato', 'error');
+            console.log('❌ Google Sheet non trovato', 'error');
         } else if (e.reason.message.includes('API_KEY_INVALID')) {
-            showNotification('❌ API Key non valida', 'error');
+            console.log('❌ API Key non valida', 'error');
         }
     }
     
