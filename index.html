@@ -597,16 +597,6 @@ let CONFIG = {
 };
 
 const CORRECT_PASSWORD = "hubris2020"; 
-
-// STATO GLOBALE
-let equipmentDatabase = {};
-let savedQuotes = [];
-let isConnected = false;
-let gapi_loaded = false;
-let rowCounter = 0;
-let currentQuoteId = null;
-let isEditMode = false;
-
 // SISTEMA DI AUTENTICAZIONE 
 
 function checkPassword() {
@@ -650,6 +640,16 @@ function logout() {
     localStorage.removeItem('hubris_authenticated');
     location.reload();
 }
+// STATO GLOBALE
+let equipmentDatabase = {};
+let savedQuotes = [];
+let isConnected = false;
+let gapi_loaded = false;
+let rowCounter = 0;
+let currentQuoteId = null;
+let isEditMode = false;
+
+
     
 // CONFIGURATION MODAL FUNCTIONS
 // CONFIGURATION MODAL FUNCTIONS - GLOBALI
