@@ -2187,23 +2187,24 @@ doc.roundedRect(15, 55, 85, 45, 0, 0, 'FD'); // Rettangolo con riempimento e bor
         }
         
         // PERIODO NOLEGGIO - OTTIMIZZATO  
+// PERIODO NOLEGGIO - ALLINEATO ALLA TABELLA
 doc.setFillColor(248, 250, 255);
-doc.rect(110, 55, 85, 45, 'F'); // Più largo, meno alto, più vicino
+doc.rect(110, 55, 85, 45, 'F');
 doc.setDrawColor(44, 90, 160);
-doc.setLineWidth(0.3); // Bordo più sottile
+doc.setLineWidth(0.3);
 doc.rect(110, 55, 85, 45);
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('PERIODO NOLEGGIO:', 128, 62);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.text('Carico: ' + (carico || 'Da definire'), 128, 68);
-        doc.text('Scarico: ' + (scarico || 'Da definire'), 128, 73);
-        doc.text('Durata: ' + durata + ' giorni', 128, 78);
+
+doc.setFontSize(10);
+doc.setFont('helvetica', 'bold');
+doc.setTextColor(44, 90, 160);
+doc.text('PERIODO NOLEGGIO:', 113, 62); // Spostato a sinistra
+
+doc.setFont('helvetica', 'normal');
+doc.setTextColor(0, 0, 0);
+doc.setFontSize(9);
+doc.text('Carico: ' + (carico || '-'), 113, 68); // Spostato a sinistra + "-" invece di "Da definire"
+doc.text('Scarico: ' + (scarico || '-'), 113, 73); // Spostato a sinistra + "-" invece di "Da definire"
+doc.text('Durata: ' + durata + ' giorni', 113, 78); // Spostato a sinistra
         
         // TITOLO TABELLA
         doc.setFontSize(14);
@@ -3048,23 +3049,24 @@ doc.rect(15, 55, 85, 45);
         }
         
         // PERIODO NOLEGGIO - OTTIMIZZATO  
+// PERIODO NOLEGGIO - ALLINEATO ALLA TABELLA
 doc.setFillColor(248, 250, 255);
-doc.rect(110, 55, 85, 45, 'F'); // Più largo, meno alto, più vicino
+doc.rect(110, 55, 85, 45, 'F');
 doc.setDrawColor(44, 90, 160);
-doc.setLineWidth(0.3); // Bordo più sottile
+doc.setLineWidth(0.3);
 doc.rect(110, 55, 85, 45);
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(44, 90, 160);
-        doc.text('PERIODO NOLEGGIO:', 128, 62);
-        
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.setFontSize(9);
-        doc.text('Carico: ' + (carico || 'Da definire'), 128, 68);
-        doc.text('Scarico: ' + (scarico || 'Da definire'), 128, 73);
-        doc.text('Durata: ' + durata + ' giorni', 128, 78);
+
+doc.setFontSize(10);
+doc.setFont('helvetica', 'bold');
+doc.setTextColor(44, 90, 160);
+doc.text('PERIODO NOLEGGIO:', 113, 62); // Spostato a sinistra
+
+doc.setFont('helvetica', 'normal');
+doc.setTextColor(0, 0, 0);
+doc.setFontSize(9);
+doc.text('Carico: ' + (carico || '-'), 113, 68); // Spostato a sinistra + "-" invece di "Da definire"
+doc.text('Scarico: ' + (scarico || '-'), 113, 73); // Spostato a sinistra + "-" invece di "Da definire"
+doc.text('Durata: ' + durata + ' giorni', 113, 78); // Spostato a sinistra
         
         // TITOLO TABELLA
         doc.setFontSize(14);
