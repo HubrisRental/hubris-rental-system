@@ -815,7 +815,8 @@ function initializeGoogleAPI() {
                 console.error('Errore inizializzazione API:', error);
                 gapi_loaded = false;
                 isConnected = false;
-                updateConnectionStatus('offline', 'Errore connessione');
+                //updateConnectionStatus('offline', 'Errore connessione');
+                console.log('Stato: offline - Errore connessione');
                 
                 // Messaggi di errore più specifici
                 if (error.error && error.error.code === 400) {
