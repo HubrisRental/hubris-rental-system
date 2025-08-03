@@ -3176,28 +3176,33 @@ if (servicesData.length > 0) {
     currentY = doc.lastAutoTable.finalY + 15;
 }
         
-        // TOTALI FINALI CON SUBTOTALE SBARRATO
+       // TOTALI FINALI CON SUBTOTALE SBARRATO
         const crossedSubtotalValue = getCrossedSubtotalValue();
         const showCrossedSubtotal = document.getElementById('enable-crossed-subtotal').checked;
-        const totaleValue = parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0;
+        const subtotalValue = parseFloat(document.getElementById('subtotale').textContent.replace('€ ', '')) || 0;
+        const discountPercent = parseFloat(document.getElementById('sconto').value) || 0;
+        const discountAmount = parseFloat(document.getElementById('sconto-amount').textContent.replace('€ ', '')) || 0;
         const imponibileValue = parseFloat(document.getElementById('imponibile').textContent.replace('€ ', '')) || 0;
         const ivaValue = parseFloat(document.getElementById('iva').textContent.replace('€ ', '')) || 0;
+        const totaleValue = parseFloat(document.getElementById('totale').textContent.replace('€ ', '')) || 0;
         
-        // BOX TOTALI SEMPLIFICATO CON SUBTOTALE SBARRATO
-        const boxHeight = (showCrossedSubtotal && crossedSubtotalValue > 0 ? 35 : 25);
+        // BOX TOTALI
+        const boxY = currentY;
+        const boxWidth = 80;
+        const boxHeight = (showCrossedSubtotal && crossedSubtotalValue > 0 ? 55 : 45) + (discountPercent > 0 ? 10 : 0);
         
         doc.setFillColor(248, 250, 255);
-        doc.rect(130, currentY, 65, boxHeight, 'F');
+        doc.rect(115, boxY, boxWidth, boxHeight, 'F');
         doc.setDrawColor(44, 90, 160);
-        doc.rect(130, currentY, 65, boxHeight);
+        doc.setLineWidth(0.5);
+        doc.rect(115, boxY, boxWidth, boxHeight);
         
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
         
-        let lineY = currentY + 7;
+        let lineY = boxY + 7;
         
-        // Subtotale sbarrato se presente - COLORE PIÙ SCURO
         // Subtotale sbarrato se presente - LINEA PIÙ SOTTILE
 if (showCrossedSubtotal && crossedSubtotalValue > 0) {
     doc.setFont('helvetica', 'normal');
@@ -3212,21 +3217,41 @@ if (showCrossedSubtotal && crossedSubtotalValue > 0) {
     doc.setTextColor(0, 0, 0);
 }
         
-        doc.text('Totale imponibile:', 133, lineY);
+        // Subtotale normale
+        doc.setFont('helvetica', 'normal');
+        doc.text('Subtotale:', 118, lineY);
+        doc.text('€ ' + subtotalValue.toFixed(2), 190, lineY, { align: 'right' });
+        lineY += 6;
+        
+        // Sconto se presente
+        if (discountPercent > 0) {
+            doc.text('Sconto (' + discountPercent.toFixed(1) + '%):', 118, lineY);
+            doc.text('-€ ' + discountAmount.toFixed(2), 190, lineY, { align: 'right' });
+            lineY += 6;
+        }
+        
+        // Imponibile
+        doc.text('Imponibile:', 118, lineY);
         doc.text('€ ' + imponibileValue.toFixed(2), 190, lineY, { align: 'right' });
+        lineY += 6;
         
-        doc.text('IVA 22%:', 133, lineY + 7);
-        doc.text('€ ' + ivaValue.toFixed(2), 190, lineY + 7, { align: 'right' });
+        // IVA
+        doc.text('IVA 22%:', 118, lineY);
+        doc.text('€ ' + ivaValue.toFixed(2), 190, lineY, { align: 'right' });
+        lineY += 6;
         
-        // LINEA E TOTALE FINALE
+        // LINEA SEPARATRICE
         doc.setLineWidth(1);
-        doc.line(133, lineY + 10, 190, lineY + 10);
+        doc.setDrawColor(44, 90, 160);
+        doc.line(118, lineY, 190, lineY);
+        lineY += 5;
         
+        // TOTALE FINALE
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(11);
+        doc.setFontSize(12);
         doc.setTextColor(44, 90, 160);
-        doc.text('TOTALE FINALE:', 133, lineY + 17);
-        doc.text('€ ' + totaleValue.toFixed(2), 190, lineY + 17, { align: 'right' });
+        doc.text('TOTALE FINALE:', 118, lineY);
+        doc.text('€ ' + totaleValue.toFixed(2), 190, lineY, { align: 'right' });
         
         // NOTE FINALI - LARGHEZZA COMPLETA
         const finalY = currentY + boxHeight + 15;
