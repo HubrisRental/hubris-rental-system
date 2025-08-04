@@ -671,6 +671,9 @@ let CONFIG = {
     SHEETS_ID: '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc',
     DATABASE_RANGE: 'Database!A:H',
     QUOTES_RANGE: 'Preventivi_Completi!A:R' // Nuovo range per preventivi completi
+    GITHUB_TOKEN: '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,
+    GITHUB_OWNER: 'HubrisRental,
+    GITHUB_REPO: 'hubris-CaricoPreventivi'
 };
 
 
@@ -831,7 +834,7 @@ function initializeGoogleAPI() {
                     if (testResponse && testResponse.result) {
                         showNotification('✅ Google Sheet verificato:', testResponse.result.properties.title);
                         await loadDatabaseFromSheets();
-                        await loadQuotesFromSheets();
+                        await loadQuotesFromGitHub();
                         showNotification('✅ Connessione Google Sheets stabilita!', 'success');
                     }
                 } catch (loadError) {
@@ -941,249 +944,53 @@ async function loadDatabaseFromSheets() {
     }
 }
 
-// FUNZIONI PREVENTIVI GOOGLE SHEETS
-async function saveQuoteToGoogleSheets(quote) {
-    if (!gapi_loaded || !isConnected) {
-        showNotification('⚠️ Google Sheets non disponibile, salvo solo in localStorage');
-        return false;
-    }
-
+// TIENI SOLO QUESTA (prima versione)
+async function saveQuoteToGitHub(quote) {
     try {
-        console.log('💾 Salvataggio preventivo su Google Sheets...');
+        const fileName = `preventivo_${quote.id}.json`;
+        const content = btoa(JSON.stringify(quote, null, 2));
         
-        // Prepara i dati per Google Sheets
-        const equipmentJSON = JSON.stringify(quote.equipment);
-        const row = [
-            quote.id,
-            quote.name,
-            quote.cliente || '',
-            quote.clientePiva || '',
-            quote.clienteVia || '',
-            quote.clientePec || '',
-            quote.codiceUnivoco || '',
-            quote.contatti || '',
-            quote.carico || '',
-            quote.scarico || '',
-            quote.durata || '1',
-            quote.sconto || '0',
-            quote.total || 0,
-            quote.status || 'draft',
-            quote.createdAt || '',
-            quote.updatedAt || quote.createdAt || '',
-            equipmentJSON,
-            quote.notes || ''
-        ];
-
-        if (isEditMode && currentQuoteId) {
-            // AGGIORNAMENTO: trova e sostituisci riga esistente
-            const existingRowIndex = await findQuoteRowIndex(currentQuoteId);
-            if (existingRowIndex > 0) {
-                await updateQuoteRow(existingRowIndex, row);
-                showNotification('✅ Preventivo aggiornato su Google Sheets');
-                return true;
-            } else {
-                showNotification('⚠️ Preventivo non trovato su Google Sheets, aggiungo nuovo');
-            }
-        }
-        
-        // NUOVO PREVENTIVO: aggiungi alla fine
-        await appendQuoteRow(row);
-        showNotification('✅ Nuovo preventivo salvato su Google Sheets');
-        return true;
-
-    } catch (error) {
-        console.error('❌ Errore salvataggio Google Sheets:', error);
-        return false;
-    }
-}
-
-async function findQuoteRowIndex(quoteId) {
-    try {
-        const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: CONFIG.SHEETS_ID,
-            range: 'Preventivi_Completi!A:A'
-        });
-        
-        if (response.result.values) {
-            for (let i = 1; i < response.result.values.length; i++) {
-                if (response.result.values[i][0] == quoteId) {
-                    return i + 1; // +1 perché le righe sono 1-indexed
-                }
-            }
-        }
-        return -1;
-    } catch (error) {
-        console.error('Errore ricerca preventivo:', error);
-        return -1;
-    }
-}
-
-async function updateQuoteRow(rowIndex, rowData) {
-    await gapi.client.sheets.spreadsheets.values.update({
-        spreadsheetId: CONFIG.SHEETS_ID,
-        range: `Preventivi_Completi!A${rowIndex}:R${rowIndex}`,
-        valueInputOption: 'RAW',
-        resource: {
-            values: [rowData]
-        }
-    });
-}
-
-async function appendQuoteRow(rowData) {
-    await gapi.client.sheets.spreadsheets.values.append({
-        spreadsheetId: CONFIG.SHEETS_ID,
-        range: 'Preventivi_Completi!A:R',
-        valueInputOption: 'RAW',
-        resource: {
-            values: [rowData]
-        }
-    });
-}
-
-async function loadQuotesFromGoogleSheets() {
-    if (!gapi_loaded || !isConnected) {
-        showNotification('⚠️ Google Sheets non disponibile, uso solo localStorage');
-        return false;
-    }
-
-    try {
-        console.log('📂 Caricamento preventivi da Google Sheets...');
-        
-        const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: CONFIG.SHEETS_ID,
-            range: CONFIG.QUOTES_RANGE
-        });
-
-        if (!response.result.values || response.result.values.length <= 1) {
-            console.log('📂 Nessun preventivo trovato su Google Sheets');
-            return true;
-        }
-
-        const sheetsQuotes = [];
-        const rows = response.result.values;
-        
-        // Salta l'header (riga 0)
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (row && row.length >= 16) {
-                try {
-                    const quote = {
-                        id: parseInt(row[0]) || Date.now(),
-                        name: row[1] || '',
-                        cliente: row[2] || '',
-                        clientePiva: row[3] || '',
-                        clienteVia: row[4] || '',
-                        clientePec: row[5] || '',
-                        codiceUnivoco: row[6] || '',
-                        contatti: row[7] || '',
-                        carico: row[8] || '',
-                        scarico: row[9] || '',
-                        durata: row[10] || '1',
-                        sconto: row[11] || '0',
-                        total: parseFloat(row[12]) || 0,
-                        status: row[13] || 'draft',
-                        createdAt: row[14] || '',
-                        updatedAt: row[15] || '',
-                        equipment: JSON.parse(row[16] || '[]'),
-                        notes: row[17] || ''
-                    };
-                    sheetsQuotes.push(quote);
-                } catch (parseError) {
-                    console.warn('⚠️ Errore parsing preventivo riga', i + 1, parseError);
-                }
-            }
-        }
-
-        console.log(`✅ ${sheetsQuotes.length} preventivi caricati da Google Sheets`);
-        return sheetsQuotes;
-
-    } catch (error) {
-        console.error('❌ Errore caricamento Google Sheets:', error);
-        return false;
-    }
-}
-
-async function loadQuotesFromSheets() {
-    showNotification('🔄 Caricamento preventivi (localStorage + Google Sheets)...');
-    
-    // FASE 1: Carica sempre da localStorage prima
-    const localQuotes = localStorage.getItem('hubris_quotes');
-    let localQuotesArray = [];
-    
-    if (localQuotes) {
+        let sha = null;
         try {
-            const parsedQuotes = JSON.parse(localQuotes);
-            if (Array.isArray(parsedQuotes)) {
-                localQuotesArray = parsedQuotes;
-                showNotification('✅ Preventivi localStorage:', localQuotesArray.length);
+            const checkResponse = await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`, {
+                headers: {
+                    'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
+            
+            if (checkResponse.ok) {
+                const fileData = await checkResponse.json();
+                sha = fileData.sha;
             }
         } catch (e) {
-            console.error('❌ Errore parsing localStorage:', e);
-            localStorage.removeItem('hubris_quotes');
+            // File non esiste, va bene così
         }
-    }
-
-    // FASE 2: Carica da Google Sheets
-    const googleQuotes = await loadQuotesFromGoogleSheets();
-    
-    if (googleQuotes && Array.isArray(googleQuotes)) {
-        // MERGE INTELLIGENTE: Google Sheets ha priorità
-        const mergedQuotes = [...googleQuotes];
         
-        // Aggiungi preventivi locali che non esistono su Google Sheets
-        localQuotesArray.forEach(localQuote => {
-            const existsOnGoogle = googleQuotes.find(gq => gq.id === localQuote.id);
-            if (!existsOnGoogle) {
-                console.log('📤 Preventivo locale non sincronizzato:', localQuote.name);
-                mergedQuotes.push(localQuote);
-            }
+        const response = await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: `${sha ? 'Aggiorna' : 'Crea'} preventivo: ${quote.name}`,
+                content: content,
+                sha: sha
+            })
         });
         
-        savedQuotes = mergedQuotes;
-        console.log(`🔄 Merge completato: ${savedQuotes.length} preventivi totali`);
-        
-        // Aggiorna localStorage con dati sincronizzati
-        localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
-        
-    } else {
-        // Google Sheets non disponibile, usa solo localStorage
-        savedQuotes = localQuotesArray;
-        console.log('📂 Solo localStorage:', savedQuotes.length);
-    }
-    
-    // Renderizza sempre
-    renderSavedQuotes();
-    updateAnalytics();
-    
-    if (savedQuotes.length > 0) {
-        console.log(`📂 ${savedQuotes.length} preventivi caricati`, 'success');
-    }
-}
-
-async function saveQuoteToSheets(quote) {
-    // Salva sempre in localStorage
-    localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
-    
-    if (!gapi_loaded || !isConnected) {
-        console.log('💾 Preventivo salvato localmente - sincronizzazione quando connesso', 'warning');
-        return;
-    }
-    try {
-        const quoteRow = [
-            quote.id, quote.name, quote.cliente, quote.clientePiva || '', quote.contatti, 
-            quote.carico, quote.scarico, quote.durata, quote.sconto, quote.total, 
-            quote.status, quote.createdAt, JSON.stringify(quote.equipment)
-        ];
-        await gapi.client.sheets.spreadsheets.values.append({
-            spreadsheetId: CONFIG.SHEETS_ID,
-            range: 'Preventivi_Salvati!A:M',
-            valueInputOption: 'RAW',
-            resource: { values: [quoteRow] }
-        });
-        showNotification('✅ Preventivo salvato su Google Sheets', 'success');
+        if (response.ok) {
+            showNotification('✅ Preventivo salvato su GitHub!');
+            return true;
+        } else {
+            console.error('❌ Errore salvataggio GitHub:', await response.text());
+            return false;
+        }
     } catch (error) {
-        console.error('Errore salvataggio:', error);
-        showNotification('❌ Errore salvataggio su Google Sheets, salvato localmente', 'error');
+        console.error('❌ Errore connessione GitHub:', error);
+        return false;
     }
 }
 
@@ -1434,167 +1241,51 @@ function showTab(tabName) {
         updateAnalytics();
     }
 }
-
-// FUNZIONI PREVENTIVI GOOGLE SHEETS
-async function saveQuoteToGoogleSheets(quote) {
-    if (!gapi_loaded || !isConnected) {
-        showNotification('⚠️ Google Sheets non disponibile, salvo solo in localStorage');
-        return false;
-    }
-
+    
+async function loadQuotesFromGitHub() {
     try {
-        console.log('💾 Salvataggio preventivo su Google Sheets...');
+        console.log('📂 Caricamento preventivi da GitHub...');
         
-        // Prepara i dati per Google Sheets
-        const equipmentJSON = JSON.stringify(quote.equipment);
-        const row = [
-            quote.id,
-            quote.name,
-            quote.cliente || '',
-            quote.clientePiva || '',
-            quote.clienteVia || '',
-            quote.clientePec || '',
-            quote.codiceUnivoco || '',
-            quote.contatti || '',
-            quote.carico || '',
-            quote.scarico || '',
-            quote.durata || '1',
-            quote.sconto || '0',
-            quote.total || 0,
-            quote.status || 'draft',
-            quote.createdAt || '',
-            quote.updatedAt || quote.createdAt || '',
-            equipmentJSON,
-            quote.notes || ''
-        ];
-
-        if (isEditMode && currentQuoteId) {
-            // AGGIORNAMENTO: trova e sostituisci riga esistente
-            const existingRowIndex = await findQuoteRowIndex(currentQuoteId);
-            if (existingRowIndex > 0) {
-                await updateQuoteRow(existingRowIndex, row);
-                showNotification('✅ Preventivo aggiornato su Google Sheets');
-                return true;
-            } else {
-                showNotification('⚠️ Preventivo non trovato su Google Sheets, aggiungo nuovo');
+        const response = await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/`, {
+            headers: {
+                'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json'
             }
-        }
-        
-        // NUOVO PREVENTIVO: aggiungi alla fine
-        await appendQuoteRow(row);
-        showNotification('✅ Nuovo preventivo salvato su Google Sheets');
-        return true;
-
-    } catch (error) {
-        console.error('❌ Errore salvataggio Google Sheets:', error);
-        showNotification('⚠️ Errore sync Google Sheets, salvato localmente', 'warning');
-        return false;
-    }
-}
-
-async function findQuoteRowIndex(quoteId) {
-    try {
-        const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: CONFIG.SHEETS_ID,
-            range: 'Preventivi_Completi!A:A'
         });
         
-        if (response.result.values) {
-            for (let i = 1; i < response.result.values.length; i++) {
-                if (response.result.values[i][0] == quoteId) {
-                    return i + 1; // +1 perché le righe sono 1-indexed
-                }
-            }
+        if (!response.ok) {
+            throw new Error('Errore caricamento lista file');
         }
-        return -1;
-    } catch (error) {
-        console.error('Errore ricerca preventivo:', error);
-        return -1;
-    }
-}
-
-async function updateQuoteRow(rowIndex, rowData) {
-    await gapi.client.sheets.spreadsheets.values.update({
-        spreadsheetId: CONFIG.SHEETS_ID,
-        range: `Preventivi_Completi!A${rowIndex}:R${rowIndex}`,
-        valueInputOption: 'RAW',
-        resource: {
-            values: [rowData]
-        }
-    });
-}
-
-async function appendQuoteRow(rowData) {
-    await gapi.client.sheets.spreadsheets.values.append({
-        spreadsheetId: CONFIG.SHEETS_ID,
-        range: 'Preventivi_Completi!A:R',
-        valueInputOption: 'RAW',
-        resource: {
-            values: [rowData]
-        }
-    });
-}
-
-async function loadQuotesFromGoogleSheets() {
-    if (!gapi_loaded || !isConnected) {
-        showNotification('⚠️ Google Sheets non disponibile, uso solo localStorage');
-        return false;
-    }
-
-    try {
-        console.log('📂 Caricamento preventivi da Google Sheets...');
         
-        const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: CONFIG.SHEETS_ID,
-            range: CONFIG.QUOTES_RANGE
-        });
-
-        if (!response.result.values || response.result.values.length <= 1) {
-            console.log('📂 Nessun preventivo trovato su Google Sheets');
-            return true;
-        }
-
-        const sheetsQuotes = [];
-        const rows = response.result.values;
+        const files = await response.json();
+        const preventivi = [];
         
-        // Salta l'header (riga 0)
-        for (let i = 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (row && row.length >= 16) {
+        // Carica ogni file preventivo
+        for (const file of files) {
+            if (file.name.startsWith('preventivo_') && file.name.endsWith('.json')) {
                 try {
-                    const quote = {
-                        id: parseInt(row[0]) || Date.now(),
-                        name: row[1] || '',
-                        cliente: row[2] || '',
-                        clientePiva: row[3] || '',
-                        clienteVia: row[4] || '',
-                        clientePec: row[5] || '',
-                        codiceUnivoco: row[6] || '',
-                        contatti: row[7] || '',
-                        carico: row[8] || '',
-                        scarico: row[9] || '',
-                        durata: row[10] || '1',
-                        sconto: row[11] || '0',
-                        total: parseFloat(row[12]) || 0,
-                        status: row[13] || 'draft',
-                        createdAt: row[14] || '',
-                        updatedAt: row[15] || '',
-                        equipment: JSON.parse(row[16] || '[]'),
-                        notes: row[17] || ''
-                    };
-                    sheetsQuotes.push(quote);
-                } catch (parseError) {
-                    console.warn('⚠️ Errore parsing preventivo riga', i + 1, parseError);
+                    const fileResponse = await fetch(file.download_url);
+                    const quote = await fileResponse.json();
+                    preventivi.push(quote);
+                } catch (e) {
+                    console.error('Errore caricamento file:', file.name);
                 }
             }
         }
-
-        console.log(`✅ ${sheetsQuotes.length} preventivi caricati da Google Sheets`);
-        return sheetsQuotes;
-
+        
+        savedQuotes = preventivi;
+        localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
+        renderSavedQuotes();
+        console.log(`✅ Caricati ${preventivi.length} preventivi da GitHub`);
+        
     } catch (error) {
-        console.error('❌ Errore caricamento Google Sheets:', error);
-        return false;
+        console.error('❌ Errore caricamento da GitHub:', error);
+        // Fallback su localStorage
+        const stored = localStorage.getItem('hubris_quotes');
+        if (stored) {
+            savedQuotes = JSON.parse(stored);
+            renderSavedQuotes();
+        }
     }
 }
 
@@ -2186,7 +1877,7 @@ function saveQuote() {
     localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
     
   // 2. Salva su Google Sheets in background
-saveQuoteToGoogleSheets(quote).then(googleSaveSuccess => {
+saveQuoteToGitHub(quote).then(googleSaveSuccess => {
     if (googleSaveSuccess) {
         showNotification('✅ Sincronizzazione Google Sheets completata');
     } else {
@@ -2500,7 +2191,7 @@ function syncDatabase() {
 
 function syncQuotes() {
     showNotification('🔄 Aggiornamento preventivi...', 'info');
-    loadQuotesFromSheets().then(() => {
+    loadQuotesFromGitHub().then(() => {
         showNotification('✅ Preventivi aggiornati!', 'success');
     });
 }
@@ -4423,7 +4114,7 @@ window.addEventListener('load', function() {
     });
     
     // Carica sempre i preventivi da localStorage prima di tutto
-    loadQuotesFromSheets();
+    loadQuotesFromGitHub();
     
     // Inizializza Google API solo se configurato
     if (CONFIG.API_KEY && CONFIG.SHEETS_ID) {
