@@ -3736,4 +3736,4 @@ function resetQuote() {
         showNotification('🔄 Preventivo resettato', 'info');
     }    
 }
-}); 
+}
