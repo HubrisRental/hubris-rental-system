@@ -3686,6 +3686,7 @@ window.addEventListener('load', function() {
 window.addEventListener('error', function(e) {
     console.error('❌ Errore globale:', e.error);
     console.error('📍 File:', e.filename, 'Linea:', e.lineno);
+});
     
 // Funzione per il bottone Duplica (preventivo corrente)
 function duplicateQuote() {
