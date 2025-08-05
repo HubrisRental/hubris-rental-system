@@ -103,33 +103,61 @@ let CONFIG = {
     GITHUB_OWNER: 'HubrisRental',
     GITHUB_REPO: 'hubris-CaricoPreventivi'
 };
-// CARICAMENTO AUTOMATICO CONFIGURAZIONE
-// Carica configurazione salvata da localStorage se presente
-(function() {
-    const savedApiKey = localStorage.getItem('hubris_api_key');
-    const savedSheetsId = localStorage.getItem('hubris_sheets_id');
-    
-    if (savedApiKey && savedSheetsId) {
-        CONFIG.API_KEY = savedApiKey;
-        CONFIG.SHEETS_ID = savedSheetsId;
-        console.log('✅ Configurazione API caricata da localStorage');
-    }
-})();
+const savedApiKey = localStorage.getItem('hubris_api_key');
+const savedSheetsId = localStorage.getItem('hubris_sheets_id');
 
-// AUTO-INIZIALIZZAZIONE AL CARICAMENTO PAGINA
+if (savedApiKey && savedSheetsId) {
+    // Usa configurazione salvata
+    CONFIG.API_KEY = savedApiKey;
+    CONFIG.SHEETS_ID = savedSheetsId;
+    console.log('✅ Configurazione caricata da localStorage');
+} else {
+    // Usa configurazione di default e salvala
+    CONFIG.API_KEY = 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY';
+    CONFIG.SHEETS_ID = '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc';
+    
+    // Salva automaticamente in localStorage
+    localStorage.setItem('hubris_api_key', CONFIG.API_KEY);
+    localStorage.setItem('hubris_sheets_id', CONFIG.SHEETS_ID);
+    console.log('💾 Configurazione di default salvata in localStorage');
+}
+
+// AUTO-INIZIALIZZAZIONE
+let autoInitAttempts = 0;
+const maxAutoInitAttempts = 3;
+
+function autoInitializeSystem() {
+    if (localStorage.getItem('hubris_authenticated') !== 'true') {
+        console.log('⏸️ Auto-init: In attesa di autenticazione...');
+        return;
+    }
+    
+    if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
+        console.log('⚠️ Auto-init: Configurazione mancante');
+        return;
+    }
+    
+    if (typeof gapi === 'undefined') {
+        autoInitAttempts++;
+        if (autoInitAttempts < maxAutoInitAttempts) {
+            console.log(`⏳ Auto-init: Google API non ancora caricata, riprovo... (${autoInitAttempts}/${maxAutoInitAttempts})`);
+            setTimeout(autoInitializeSystem, 3000);
+        } else {
+            console.error('❌ Auto-init: Google API non si carica dopo 3 tentativi');
+        }
+        return;
+    }
+    
+    console.log('🚀 Auto-init: Avvio inizializzazione automatica API...');
+    initializeGoogleAPI();
+}
+
+// Avvia auto-inizializzazione quando il DOM è pronto
 document.addEventListener('DOMContentLoaded', function() {
-    // Prima controlla autenticazione
     checkAuthentication();
     
-    // Se autenticato E configurato, inizializza automaticamente le API
-    if (localStorage.getItem('hubris_authenticated') === 'true') {
-        if (CONFIG.API_KEY && CONFIG.SHEETS_ID) {
-            console.log('🚀 Auto-inizializzazione API...');
-            setTimeout(() => {
-                initializeGoogleAPI();
-            }, 2000); // Aspetta 2 secondi che tutto sia caricato
-        }
-    }
+    // Aspetta un po' poi prova auto-init
+    setTimeout(autoInitializeSystem, 2000);
 });
 
 
