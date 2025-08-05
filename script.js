@@ -3821,4 +3821,67 @@ document.addEventListener('DOMContentLoaded', function() {
         loginButton.addEventListener('click', checkPassword);
     }
 });
+// ========== FUNZIONI PER I BOTTONI NUOVO PREVENTIVO ==========
+
+// Funzione per il bottone Carica
+function loadQuote() {
+    if (savedQuotes.length === 0) {
+        showNotification('❌ Nessun preventivo salvato!', 'error');
+        return;
+    }
+    
+    // Mostra la tab dei preventivi salvati
+    document.querySelector('.tab[onclick*="saved"]').click();
+    showNotification('📂 Seleziona un preventivo dalla lista', 'info');
+}
+
+// Funzione per il bottone Duplica (preventivo corrente)
+function duplicateQuote() {
+    const quoteName = document.getElementById('quoteName').value;
+    if (!quoteName) {
+        showNotification('❌ Nessun preventivo da duplicare!', 'error');
+        return;
+    }
+    
+    // Cambia il nome aggiungendo "- Copia"
+    document.getElementById('quoteName').value = quoteName + ' - Copia';
+    
+    // Reset modalità edit
+    currentQuoteId = null;
+    isEditMode = false;
+    updateUIMode();
+    
+    showNotification('📄 Preventivo duplicato! Modifica il nome e salva.', 'info');
+}
+
+// Funzione per il bottone Reset (già esiste ma verificala)
+function resetQuote() {
+    if (confirm('Sei sicuro di voler cancellare tutto il preventivo?')) {
+        document.getElementById('equipmentRows').innerHTML = '';
+        document.getElementById('cliente').value = '';
+        document.getElementById('clientePiva').value = '';
+        document.getElementById('clienteVia').value = '';
+        document.getElementById('clientePec').value = '';
+        document.getElementById('codiceUnivoco').value = '';
+        document.getElementById('contatti').value = '';
+        document.getElementById('carico').value = '';
+        document.getElementById('scarico').value = '';
+        document.getElementById('durata').value = '1';
+        document.getElementById('sconto').value = '0';
+        document.getElementById('quoteName').value = '';
+        
+        // Reset subtotale sbarrato
+        document.getElementById('enable-crossed-subtotal').checked = false;
+        document.getElementById('crossed-subtotal-input').value = '0';
+        toggleCrossedSubtotal();
+        
+        // Reset modalità
+        currentQuoteId = null;
+        isEditMode = false;
+        updateUIMode();
+        
+        updateTotals();
+        showNotification('🔄 Preventivo resettato', 'info');
+    }
+}    
 }
