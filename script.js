@@ -1467,6 +1467,8 @@ if (isEditMode) {
     isEditMode = true;
     updateUIMode();
 }
+}
+
 
 function updateUIMode() {
     const saveBtn = document.getElementById('saveBtn');
