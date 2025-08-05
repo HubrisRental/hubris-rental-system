@@ -1673,29 +1673,7 @@ function deleteQuote(quoteId) {
         localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
         renderSavedQuotes();
         updateAnalytics();
-        console.log('🗑️ Preventivo eliminato', 'info');
-    }
-}
-
-function resetQuote() {
-    if (confirm('Sei sicuro di voler cancellare tutto il preventivo?')) {
-        document.getElementById('equipmentRows').innerHTML = '';
-        document.getElementById('cliente').value = '';
-        document.getElementById('clientePiva').value = '';
-        document.getElementById('contatti').value = '';
-        document.getElementById('carico').value = '';
-        document.getElementById('scarico').value = '';
-        document.getElementById('durata').value = '1';
-        document.getElementById('sconto').value = '0';
-        document.getElementById('quoteName').value = '';
-        updateTotals();
-        showNotification('🔄 Preventivo resettato', 'info');
-        document.getElementById('enable-crossed-subtotal').checked = false;
-        document.getElementById('crossed-subtotal-input').value = '0';
-        toggleCrossedSubtotal();
-        currentQuoteId = null;
-        isEditMode = false;
-        updateUIMode();
+        showNotification('🗑️ Preventivo eliminato', 'success');  // <-- CAMBIA questa riga
     }
 }
 
@@ -1766,7 +1744,7 @@ function syncDatabase() {
 
 function syncQuotes() {
     showNotification('🔄 Aggiornamento preventivi...', 'info');
-    loadQuotesFromGitHub().then(() => {
+    sFromGitHub().then(() => {
         showNotification('✅ Preventivi aggiornati!', 'success');
     });
 }
@@ -3629,16 +3607,6 @@ function editEquipment(category, name) {
     showNotification('✅ Attrezzatura "' + name + '" modificata!', 'success');
 }
 
-function duplicateQuote() {
-    const quoteName = document.getElementById('quoteName').value;
-    if (!quoteName) {
-        showNotification('❌ Nessun preventivo da duplicare!', 'error');
-        return;
-    }
-    document.getElementById('quoteName').value = quoteName + ' - Copia';
-    showNotification('📄 Preventivo duplicato! Modifica il nome e salva.', 'info');
-}
-
 // INITIALIZATION
 window.addEventListener('load', function() {
     // Prima controlla se siamo autenticati
@@ -3766,6 +3734,5 @@ function resetQuote() {
         
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
-    }
-}    
+    }    
 }
