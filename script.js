@@ -101,22 +101,18 @@ let CONFIG = {
     QUOTES_RANGE: 'Preventivi_Completi!A:R',
     GITHUB_TOKEN: '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',
     GITHUB_OWNER: 'HubrisRental',
-    GITHUB_REPO: 'hubris-CaricoPreventivi'
+    GITHUB_REPO: 'Hubris-CaricoPreventivi'
 };
 const savedApiKey = localStorage.getItem('hubris_api_key');
 const savedSheetsId = localStorage.getItem('hubris_sheets_id');
 
 if (savedApiKey && savedSheetsId) {
-    // Usa configurazione salvata
     CONFIG.API_KEY = savedApiKey;
     CONFIG.SHEETS_ID = savedSheetsId;
     console.log('✅ Configurazione caricata da localStorage');
 } else {
-    // Usa configurazione di default e salvala
     CONFIG.API_KEY = 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY';
     CONFIG.SHEETS_ID = '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc';
-    
-    // Salva automaticamente in localStorage
     localStorage.setItem('hubris_api_key', CONFIG.API_KEY);
     localStorage.setItem('hubris_sheets_id', CONFIG.SHEETS_ID);
     console.log('💾 Configurazione di default salvata in localStorage');
