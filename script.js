@@ -133,13 +133,15 @@ function autoInitializeSystem() {
         return;
     }
     
-    if (typeof gapi === 'undefined') {
+    // Controlla sia gapi che window.gapiLoaded
+    if (typeof gapi === 'undefined' || !window.gapiLoaded) {
         autoInitAttempts++;
         if (autoInitAttempts < maxAutoInitAttempts) {
             console.log(`⏳ Auto-init: Google API non ancora caricata, riprovo... (${autoInitAttempts}/${maxAutoInitAttempts})`);
             setTimeout(autoInitializeSystem, 3000);
         } else {
             console.error('❌ Auto-init: Google API non si carica dopo 3 tentativi');
+            showNotification('❌ Impossibile caricare Google API. Ricarica la pagina.', 'error');
         }
         return;
     }
@@ -276,7 +278,11 @@ function initializeGoogleAPI() {
         console.log('⚙️ Configurazione API mancante - Clicca su Config');
         return;
     }
-
+ if (typeof gapi === 'undefined') {
+        console.error('❌ Google API non definita, attendo...');
+        setTimeout(initializeGoogleAPI, 2000);
+        return;
+    }
     if (typeof updateConnectionStatus !== 'undefined') {
     //updateConnectionStatus('syncing', 'Connessione in corso...');
 }
