@@ -853,6 +853,7 @@ async function loadQuotesFromGitHub() {
             savedQuotes = JSON.parse(stored);
             renderSavedQuotes();
             showNotification('⚠️ Caricamento da backup locale', 'warning');
+            console.log('📁 Trovati questi file/cartelle:', items.map(i => i.path));
         }
     }
 }
@@ -3718,7 +3719,18 @@ window.addEventListener('load', function() {
 window.addEventListener('error', function(e) {
     console.error('❌ Errore globale:', e.error);
     console.error('📍 File:', e.filename, 'Linea:', e.lineno);
+// Funzione per il bottone Carica nella pagina Nuovo Preventivo
+function loadQuote() {
+    if (savedQuotes.length === 0) {
+        showNotification('❌ Nessun preventivo salvato!', 'error');
+        return;
+    }
     
+    // Mostra la tab dei preventivi salvati
+    showTab('saved');
+    document.querySelector('[onclick="showTab(\'saved\')"]').classList.add('active');
+    showNotification('📂 Seleziona un preventivo dalla lista', 'info');
+}    
     // Errori specifici Google API
     if (e.error && e.error.message) {
         if (e.error.message.includes('gapi')) {
