@@ -99,7 +99,7 @@ let CONFIG = {
     SHEETS_ID: '',
     DATABASE_RANGE: 'Database!A:H',
     QUOTES_RANGE: 'Preventivi_Completi!A:R',
-    GITHUB_TOKEN: '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',
+    GITHUB_TOKEN: '', // Configurato via localStorage
     GITHUB_OWNER: 'HubrisRental',
     GITHUB_REPO: 'Hubris-CaricoPreventivi'
 };
@@ -117,7 +117,35 @@ if (savedApiKey && savedSheetsId) {
     localStorage.setItem('hubris_sheets_id', CONFIG.SHEETS_ID);
     console.log('💾 Configurazione di default salvata in localStorage');
 }
+// Gestione sicura del GitHub Token
+function getGitHubToken() {
+    let token = localStorage.getItem('hubris_github_token');
+    if (!token) {
+        // Se non c'è, chiedi all'utente
+        token = prompt('Inserisci il GitHub Token (verrà salvato localmente):');
+        if (token && token.startsWith('ghp_')) {
+            localStorage.setItem('hubris_github_token', token);
+            showNotification('✅ Token GitHub salvato!', 'success');
+        } else if (token) {
+            showNotification('❌ Token non valido (deve iniziare con ghp_)', 'error');
+            return null;
+        }
+    }
+    return token;
+}
 
+// Funzione per verificare/aggiornare il token
+window.updateGitHubToken = function() {
+    const currentToken = localStorage.getItem('hubris_github_token');
+    const newToken = prompt('Inserisci il nuovo GitHub Token:', currentToken || '');
+    if (newToken && newToken.startsWith('ghp_')) {
+        localStorage.setItem('hubris_github_token', newToken);
+        showNotification('✅ Token GitHub aggiornato!', 'success');
+        location.reload();
+    } else if (newToken) {
+        showNotification('❌ Token non valido', 'error');
+    }
+}
 // AUTO-INIZIALIZZAZIONE
 let autoInitAttempts = 0;
 const maxAutoInitAttempts = 3;
@@ -232,7 +260,6 @@ window.saveConfig = function() {
         // Reset stato precedente
         isConnected = false;
         gapi_loaded = false;
-        //updateConnectionStatus('offline', 'Configurazione in corso...');
         
         // Salva nuova configurazione
         CONFIG.API_KEY = apiKey;
@@ -274,7 +301,6 @@ window.saveConfig = function() {
 // GOOGLE SHEETS API INITIALIZATION
 function initializeGoogleAPI() {
     if (!CONFIG.API_KEY || !CONFIG.SHEETS_ID) {
-        //updateConnectionStatus('offline', 'Configurazione mancante');
         console.log('⚙️ Configurazione API mancante - Clicca su Config');
         return;
     }
@@ -284,13 +310,11 @@ function initializeGoogleAPI() {
         return;
     }
     if (typeof updateConnectionStatus !== 'undefined') {
-    //updateConnectionStatus('syncing', 'Connessione in corso...');
 }
     
     // Verifica se gapi è disponibile
     if (typeof gapi === 'undefined') {
         console.error('Google API non caricata');
-        //updateConnectionStatus('offline', 'Google API non disponibile');
         showNotification('❌ Google API non caricata. Ricaricare la pagina.', 'error');
         return;
     }
@@ -307,9 +331,6 @@ function initializeGoogleAPI() {
                 showNotification('✅ Google API inizializzata');
                 gapi_loaded = true;
                 isConnected = true;
-                //updateConnectionStatus('online', 'Connesso');
-                
-                // Test connessione con un tentativo di lettura
                 try {
                     // Prima verifica che il foglio esista
                     const testResponse = await gapi.client.sheets.spreadsheets.get({
@@ -339,7 +360,6 @@ function initializeGoogleAPI() {
                 console.error('Errore inizializzazione API:', error);
                 gapi_loaded = false;
                 isConnected = false;
-                //updateConnectionStatus('offline', 'Errore connessione');
                 console.log('Stato: offline - Errore connessione');
                 
                 // Messaggi di errore più specifici
@@ -355,7 +375,6 @@ function initializeGoogleAPI() {
         },
         onerror: (error) => {
             console.error('Errore caricamento gapi:', error);
-            //updateConnectionStatus('offline', 'Errore caricamento API');
             showNotification('❌ Errore nel caricamento delle API Google', 'error');
         }
     });
@@ -368,7 +387,6 @@ async function loadDatabaseFromSheets() {
     }
 
     try {
-        //updateConnectionStatus('syncing', 'Sincronizzazione database...');
         showNotification('🔄 Caricamento database da Sheets ID:', CONFIG.SHEETS_ID);
         showNotification('🔄 Range:', CONFIG.DATABASE_RANGE);
 
@@ -395,7 +413,6 @@ async function loadDatabaseFromSheets() {
         }
 
         processEquipmentData(values);
-        //updateConnectionStatus('online', 'Database aggiornato');
         updateSyncTime();
         
         const categoriesCount = Object.keys(equipmentDatabase).length;
@@ -409,7 +426,6 @@ async function loadDatabaseFromSheets() {
 
     } catch (error) {
         console.error('❌ Errore dettagliato caricamento database:', error);
-        //updateConnectionStatus('offline', 'Errore sync database');
         
         // Messaggi di errore più specifici
         if (error.status === 403) {
@@ -429,52 +445,79 @@ async function loadDatabaseFromSheets() {
     }
 }
 
-// TIENI SOLO QUESTA (prima versione)
 async function saveQuoteToGitHub(quote) {
     try {
-        const fileName = `preventivo_${quote.id}.json`;
-        const content = btoa(JSON.stringify(quote, null, 2));
+        const token = getGitHubToken();
+        if (!token) {
+            showNotification('⚠️ Token GitHub mancante!', 'warning');
+            return false;
+        }
+
+        // Crea struttura con anno/mese
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const fileName = `${year}/${month}/preventivo_${quote.id}.json`;
+        
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(quote, null, 2))));
         
         let sha = null;
         try {
-            const checkResponse = await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`, {
-                headers: {
-                    'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
-                    'Accept': 'application/vnd.github.v3+json'
+            const checkResponse = await fetch(
+                `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`,
+                {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
                 }
-            });
+            );
             
             if (checkResponse.ok) {
                 const fileData = await checkResponse.json();
                 sha = fileData.sha;
             }
         } catch (e) {
-            // File non esiste, va bene così
+            console.log('File non esiste, verrà creato');
         }
         
-        const response = await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                message: `${sha ? 'Aggiorna' : 'Crea'} preventivo: ${quote.name}`,
-                content: content,
-                sha: sha
-            })
-        });
+        const response = await fetch(
+            `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`,
+            {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: `${sha ? 'Aggiorna' : 'Crea'} preventivo: ${quote.name}`,
+                    content: content,
+                    sha: sha
+                })
+            }
+        );
         
         if (response.ok) {
-            showNotification('✅ Preventivo salvato su GitHub!');
+            console.log('✅ Salvato su GitHub:', fileName);
             return true;
         } else {
-            console.error('❌ Errore salvataggio GitHub:', await response.text());
+            const error = await response.text();
+            console.error('❌ Errore GitHub:', error);
+            
+            if (response.status === 401) {
+                showNotification('❌ Token non valido o scaduto!', 'error');
+                localStorage.removeItem('hubris_github_token');
+            } else if (response.status === 404) {
+                showNotification('❌ Repository non trovato o non accessibile', 'error');
+            } else {
+                showNotification('❌ Errore salvataggio: ' + response.status, 'error');
+            }
             return false;
         }
     } catch (error) {
-        console.error('❌ Errore connessione GitHub:', error);
+        console.error('❌ Errore connessione:', error);
+        showNotification('❌ Errore di connessione a GitHub', 'error');
         return false;
     }
 }
@@ -729,47 +772,87 @@ function showTab(tabName) {
     
 async function loadQuotesFromGitHub() {
     try {
+        const token = getGitHubToken();
+        if (!token) {
+            console.log('⚠️ Token GitHub mancante, uso solo localStorage');
+            const stored = localStorage.getItem('hubris_quotes');
+            if (stored) {
+                savedQuotes = JSON.parse(stored);
+                renderSavedQuotes();
+            }
+            return;
+        }
+        
         console.log('📂 Caricamento preventivi da GitHub...');
         
-        const response = await fetch(`https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/`, {
-            headers: {
-                'Authorization': `token ${CONFIG.GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json'
+        // Funzione ricorsiva per leggere cartelle
+        async function readDirectory(path = '') {
+            const response = await fetch(
+                `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`,
+                {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                }
+            );
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Token non valido');
+                }
+                throw new Error('Errore caricamento: ' + response.status);
             }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Errore caricamento lista file');
-        }
-        
-        const files = await response.json();
-        const preventivi = [];
-        
-        // Carica ogni file preventivo
-        for (const file of files) {
-            if (file.name.startsWith('preventivo_') && file.name.endsWith('.json')) {
-                try {
-                    const fileResponse = await fetch(file.download_url);
-                    const quote = await fileResponse.json();
-                    preventivi.push(quote);
-                } catch (e) {
-                    console.error('Errore caricamento file:', file.name);
+            
+            const items = await response.json();
+            const jsonFiles = [];
+            
+            for (const item of items) {
+                if (item.type === 'dir') {
+                    // Se è una cartella, leggila ricorsivamente
+                    const subFiles = await readDirectory(item.path);
+                    jsonFiles.push(...subFiles);
+                } else if (item.name.startsWith('preventivo_') && item.name.endsWith('.json')) {
+                    jsonFiles.push(item);
                 }
             }
+            
+            return jsonFiles;
         }
         
-        savedQuotes = preventivi;
+        const files = await readDirectory();
+        const preventivi = [];
+        
+        // Carica ogni file
+        for (const file of files) {
+            try {
+                const fileResponse = await fetch(file.download_url);
+                const quote = await fileResponse.json();
+                preventivi.push(quote);
+            } catch (e) {
+                console.error('Errore caricamento file:', file.name, e);
+            }
+        }
+        
+        savedQuotes = preventivi.sort((a, b) => b.id - a.id);
         localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
         renderSavedQuotes();
         console.log(`✅ Caricati ${preventivi.length} preventivi da GitHub`);
         
     } catch (error) {
         console.error('❌ Errore caricamento da GitHub:', error);
+        
+        if (error.message === 'Token non valido') {
+            showNotification('❌ Token GitHub non valido!', 'error');
+            localStorage.removeItem('hubris_github_token');
+        }
+        
         // Fallback su localStorage
         const stored = localStorage.getItem('hubris_quotes');
         if (stored) {
             savedQuotes = JSON.parse(stored);
             renderSavedQuotes();
+            showNotification('⚠️ Caricamento da backup locale', 'warning');
         }
     }
 }
@@ -782,7 +865,6 @@ async function testConnection() {
     }
     
     console.log('🧪 Test connessione Google Sheets...');
-    //updateConnectionStatus('syncing', 'Test connessione...');
     
     try {
         // Test semplice: prova a leggere una cella qualsiasi
@@ -793,7 +875,6 @@ async function testConnection() {
         
         if (response && response.result) {
             showNotification('✅ Test connessione riuscito');
-            //updateConnectionStatus('online', 'Connesso e testato');
             showNotification('✅ Connessione Google Sheets verificata!', 'success');
             return true;
         } else {
@@ -802,7 +883,6 @@ async function testConnection() {
         
     } catch (error) {
         console.error('❌ Test connessione fallito:', error);
-        //updateConnectionStatus('offline', 'Test fallito');
         
         // Messaggi di errore specifici
         if (error.message.includes('API_KEY_INVALID')) {
@@ -3608,7 +3688,6 @@ window.addEventListener('load', function() {
         // Verifica base della API key
         if (!CONFIG.API_KEY.startsWith('AIza') || CONFIG.API_KEY.length < 39) {
             console.error('❌ API Key non valida nel formato');
-            //updateConnectionStatus('offline', 'API Key non valida');
             showNotification('❌ API Key non valida - Clicca su Config per aggiornare', 'error');
             return;
         }
@@ -3619,7 +3698,6 @@ window.addEventListener('load', function() {
         }, 1000);
     } else {
         console.log('⚙️ Configurazione incompleta, modalità offline');
-        //updateConnectionStatus('offline', 'Configurazione richiesta');
         console.log('⚙️ Clicca su "Config" per configurare le API Google Sheets', 'warning');
     }
     
