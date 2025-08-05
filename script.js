@@ -103,7 +103,34 @@ let CONFIG = {
     GITHUB_OWNER: 'HubrisRental',
     GITHUB_REPO: 'hubris-CaricoPreventivi'
 };
+// CARICAMENTO AUTOMATICO CONFIGURAZIONE
+// Carica configurazione salvata da localStorage se presente
+(function() {
+    const savedApiKey = localStorage.getItem('hubris_api_key');
+    const savedSheetsId = localStorage.getItem('hubris_sheets_id');
+    
+    if (savedApiKey && savedSheetsId) {
+        CONFIG.API_KEY = savedApiKey;
+        CONFIG.SHEETS_ID = savedSheetsId;
+        console.log('✅ Configurazione API caricata da localStorage');
+    }
+})();
 
+// AUTO-INIZIALIZZAZIONE AL CARICAMENTO PAGINA
+document.addEventListener('DOMContentLoaded', function() {
+    // Prima controlla autenticazione
+    checkAuthentication();
+    
+    // Se autenticato E configurato, inizializza automaticamente le API
+    if (localStorage.getItem('hubris_authenticated') === 'true') {
+        if (CONFIG.API_KEY && CONFIG.SHEETS_ID) {
+            console.log('🚀 Auto-inizializzazione API...');
+            setTimeout(() => {
+                initializeGoogleAPI();
+            }, 2000); // Aspetta 2 secondi che tutto sia caricato
+        }
+    }
+});
 
 
 function checkAuthentication() {
@@ -3564,13 +3591,6 @@ window.addEventListener('load', function() {
         console.log('⚙️ Configurazione incompleta, modalità offline');
         //updateConnectionStatus('offline', 'Configurazione richiesta');
         console.log('⚙️ Clicca su "Config" per configurare le API Google Sheets', 'warning');
-        
-        // Mostra automaticamente il modal di configurazione al primo avvio
-        if (!savedApiKey && !savedSheetsId) {
-            setTimeout(() => {
-                showConfigModal();
-            }, 2000);
-        }
     }
     
     // Auto-sync every 10 minutes (ridotto per evitare troppi tentativi)
