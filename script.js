@@ -1521,6 +1521,15 @@ function saveAsNew() {
 }
 
 function loadQuoteById(quoteId) {
+    if (!quoteId) {
+        if (savedQuotes.length === 0) {
+            showNotification('❌ Nessun preventivo salvato!', 'error');
+            return;
+        }
+        showTab('saved');
+        showNotification('📂 Seleziona un preventivo dalla lista', 'info');
+        return;
+    }
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
         showNotification('❌ Preventivo non trovato!', 'error');
@@ -3620,16 +3629,6 @@ function editEquipment(category, name) {
     showNotification('✅ Attrezzatura "' + name + '" modificata!', 'success');
 }
 
-function loadQuote() {
-    if (savedQuotes.length === 0) {
-        showNotification('❌ Nessun preventivo salvato!', 'error');
-        return;
-    }
-    showTab('saved');
-    document.querySelector('[onclick="showTab(\'saved\')"]').classList.add('active');
-    console.log('📂 Seleziona un preventivo dalla lista', 'info');
-}
-
 function duplicateQuote() {
     const quoteName = document.getElementById('quoteName').value;
     if (!quoteName) {
@@ -3719,122 +3718,7 @@ window.addEventListener('load', function() {
 window.addEventListener('error', function(e) {
     console.error('❌ Errore globale:', e.error);
     console.error('📍 File:', e.filename, 'Linea:', e.lineno);
-// Funzione per il bottone Carica nella pagina Nuovo Preventivo
-function loadQuote() {
-    if (savedQuotes.length === 0) {
-        showNotification('❌ Nessun preventivo salvato!', 'error');
-        return;
-    }
     
-    // Mostra la tab dei preventivi salvati
-    showTab('saved');
-    document.querySelector('[onclick="showTab(\'saved\')"]').classList.add('active');
-    showNotification('📂 Seleziona un preventivo dalla lista', 'info');
-}    
-    // Errori specifici Google API
-    if (e.error && e.error.message) {
-        if (e.error.message.includes('gapi')) {
-            showNotification('⚠️ Errore Google API - ricaricare la pagina', 'warning');
-        } else if (e.error.message.includes('jsPDF')) {
-            showNotification('⚠️ Errore generazione PDF', 'warning');
-        } else {
-            showNotification('❌ Errore del sistema. Verifica console.', 'error');
-        }
-    }
-});
-
-// Gestione errori promesse non catturate
-window.addEventListener('unhandledrejection', function(e) {
-    console.error('❌ Promise rejection non gestita:', e.reason);
-    
-    // Errori API Google Sheets specifici
-    if (e.reason && e.reason.message) {
-        if (e.reason.message.includes('PERMISSION_DENIED')) {
-            showNotification('❌ Accesso negato a Google Sheets', 'error');
-        } else if (e.reason.message.includes('NOT_FOUND')) {
-            showNotification('❌ Google Sheet non trovato', 'error');
-        } else if (e.reason.message.includes('API_KEY_INVALID')) {
-            showNotification('❌ API Key non valida', 'error');
-        }
-    }
-    
-    e.preventDefault(); // Previene la stampa dell'errore in console
-});
-
-// Verifica periodica dello stato delle API
-setInterval(() => {
-    if (CONFIG.API_KEY && CONFIG.SHEETS_ID && !isConnected) {
-        showNotification('🔄 Tentativo riconnessione automatica...');
-        initializeGoogleAPI();
-    }
-}, 30000); // Ogni 30 secondi
-
-// Prevent accidental page reload
-window.addEventListener('beforeunload', function(e) {
-    const hasUnsavedChanges = document.getElementById('quoteName').value || 
-                           document.querySelectorAll('[id^="row-"]').length > 0;
-    if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
-});
-
-// FIX IMMEDIATO PER I BOTTONI
-document.addEventListener('DOMContentLoaded', function() {
-    // Config button
-    const configBtn = document.getElementById('configBtn');
-    if (configBtn) {
-        configBtn.addEventListener('click', function() {
-            const modal = document.getElementById('configModal');
-            if (modal) {
-                modal.classList.add('active');
-                document.getElementById('apiKeyInput').value = CONFIG.API_KEY || '';
-                document.getElementById('sheetsIdInput').value = CONFIG.SHEETS_ID || '';
-            }
-        });
-    }
-    
-    // Cancel button
-    const cancelBtn = document.getElementById('cancelBtn');
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', function() {
-            const modal = document.getElementById('configModal');
-            if (modal) {
-                modal.classList.remove('active');
-            }
-        });
-    }
-    
-    // Save button
-    const saveBtn = document.getElementById('saveBtn');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', function() {
-            window.saveConfig();
-        });
-    }
-});
-
-// Event listener per il bottone di login
-document.addEventListener('DOMContentLoaded', function() {
-    const loginButton = document.getElementById('loginButton');
-    if (loginButton) {
-        loginButton.addEventListener('click', checkPassword);
-    }
-});
-// ========== FUNZIONI PER I BOTTONI NUOVO PREVENTIVO ==========
-
-// Funzione per il bottone Carica
-function loadQuote() {
-    if (savedQuotes.length === 0) {
-        showNotification('❌ Nessun preventivo salvato!', 'error');
-        return;
-    }
-    
-    // Mostra la tab dei preventivi salvati
-    document.querySelector('.tab[onclick*="saved"]').click();
-    showNotification('📂 Seleziona un preventivo dalla lista', 'info');
-}
-
 // Funzione per il bottone Duplica (preventivo corrente)
 function duplicateQuote() {
     const quoteName = document.getElementById('quoteName').value;
