@@ -95,8 +95,8 @@ document.addEventListener('click', function(e) {
 });
 // CONFIGURAZIONE GLOBALE - CON I TUOI DATI
 let CONFIG = {
-    API_KEY: 'AIzaSyAbcQrfJiXQMIbBAb5ZOLvm_9tEz73d1DY',
-    SHEETS_ID: '1gzjiGiZkyKeaE6f0iBKoeUNW7bbhemdQiipGknnd6Pc',
+    API_KEY: '',
+    SHEETS_ID: '',
     DATABASE_RANGE: 'Database!A:H',
     QUOTES_RANGE: 'Preventivi_Completi!A:R',
     GITHUB_TOKEN: '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',
