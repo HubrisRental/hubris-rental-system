@@ -1934,14 +1934,14 @@ doc.rect(110, 55, 85, 45);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('PERIODO NOLEGGIO:', 128, 62);
+        doc.text('PERIODO NOLEGGIO:', 113, 62);
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
-        doc.text('Carico: ' + (carico || 'Da definire'), 128, 68);
-        doc.text('Scarico: ' + (scarico || 'Da definire'), 128, 73);
-        doc.text('Durata: ' + durata + ' giorni', 128, 78);
+        doc.text('Carico: ' + (carico || 'Da definire'), 113, 68);
+        doc.text('Scarico: ' + (scarico || 'Da definire'), 113, 73);
+        doc.text('Durata: ' + durata + ' giorni', 113, 78);
         
         // TITOLO TABELLA
         doc.setFontSize(14);
@@ -2278,13 +2278,13 @@ doc.rect(110, 55, 85, 45);
         
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('CAUSALE TRASPORTO:', 128, 62);
+        doc.text('CAUSALE TRASPORTO:', 113, 62);
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        doc.text('Noleggio attrezzature', 128, 68);
-        doc.text('Data carico: ' + (carico || 'Da definire'), 128, 73);
-        doc.text('Data reso: ' + (scarico || 'Da definire'), 128, 78);
+        doc.text('Noleggio attrezzature', 113, 68);
+        doc.text('Data carico: ' + (carico || 'Da definire'), 113, 73);
+        doc.text('Data reso: ' + (scarico || 'Da definire'), 113, 78);
         
         // TITOLO TABELLA
         doc.setFontSize(14);
@@ -2795,14 +2795,14 @@ doc.rect(110, 55, 85, 45);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('PERIODO NOLEGGIO:', 128, 62);
+        doc.text('PERIODO NOLEGGIO:', 113, 62);
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(9);
-        doc.text('Carico: ' + (carico || 'Da definire'), 128, 68);
-        doc.text('Scarico: ' + (scarico || 'Da definire'), 128, 73);
-        doc.text('Durata: ' + durata + ' giorni', 128, 78);
+        doc.text('Carico: ' + (carico || 'Da definire'), 113, 68);
+        doc.text('Scarico: ' + (scarico || 'Da definire'), 113, 73);
+        doc.text('Durata: ' + durata + ' giorni', 113, 78);
         
         // TITOLO TABELLA
         doc.setFontSize(14);
@@ -3102,13 +3102,13 @@ doc.rect(110, 55, 85, 45);
         
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
-        doc.text('PROGETTO:', 128, 62);
+        doc.text('PROGETTO:', 113, 62);
         
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(0, 0, 0);
-        doc.text(quoteName, 128, 68);
-        doc.text('Tipo: Valutazione assicurativa', 128, 73);
-        doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 128, 78);
+        doc.text(quoteName, 113, 68);
+        doc.text('Tipo: Valutazione assicurativa', 113, 73);
+        doc.text('Data: ' + new Date().toLocaleDateString('it-IT'), 113, 78);
         
         // TITOLO TABELLA
         doc.setFontSize(14);
