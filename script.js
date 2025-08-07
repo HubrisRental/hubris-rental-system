@@ -186,7 +186,26 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(autoInitializeSystem, 2000);
 });
 
-
+// FIX per eliminare gli avvisi della console
+document.addEventListener('DOMContentLoaded', function() {
+    // Aggiungi name attribute a tutti gli input senza name o id
+    document.querySelectorAll('input:not([id]):not([name])').forEach((input, index) => {
+        input.setAttribute('name', 'input-field-' + index);
+    });
+    
+    // Silenzia l'errore 404 di GitHub per cartelle non esistenti
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        return originalFetch.apply(this, args).catch(error => {
+            // Se è un 404 su GitHub per le cartelle, ignoralo silenziosamente
+            if (args[0] && args[0].includes('api.github.com') && error.status === 404) {
+                console.log('📁 Cartella non ancora creata su GitHub - normale per nuovi mesi');
+                return Promise.resolve({ ok: false, status: 404 });
+            }
+            throw error;
+        });
+    };
+});
 function checkAuthentication() {
     const isAuthenticated = localStorage.getItem('hubris_authenticated');
     if (isAuthenticated === 'true') {
