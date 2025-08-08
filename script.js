@@ -378,13 +378,11 @@ function initializeGoogleAPI() {
     gapi.load('client', {
         callback: async () => {
             try {
-                showNotification('🔄 Inizializzazione Google API...');
                 await gapi.client.init({
                     apiKey: CONFIG.API_KEY,
                     discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
                 });
                 
-                showNotification('✅ Google API inizializzata');
                 gapi_loaded = true;
                 isConnected = true;
                 try {
@@ -443,9 +441,6 @@ async function loadDatabaseFromSheets() {
     }
 
     try {
-        showNotification('🔄 Caricamento database da Sheets ID:', CONFIG.SHEETS_ID);
-        showNotification('🔄 Range:', CONFIG.DATABASE_RANGE);
-
         const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: CONFIG.SHEETS_ID,
             range: CONFIG.DATABASE_RANGE
@@ -580,8 +575,6 @@ async function saveQuoteToGitHub(quote) {
 
 // DATA PROCESSING
 function processEquipmentData(values) {
-    showNotification('🔄 Processamento dati database...');
-    
     if (!values || !Array.isArray(values) || values.length < 2) {
         console.error('❌ Dati non validi per processamento');
         showNotification('❌ Formato dati database non valido', 'error');
@@ -1723,15 +1716,80 @@ function duplicateQuoteById(quoteId) {
     showNotification('📄 Preventivo duplicato! Modifica il nome e salva.', 'info');
 }
 
-function deleteQuote(quoteId) {
+async function deleteQuote(quoteId) {
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) return;
-    if (confirm('Sei sicuro di voler eliminare il preventivo "' + quote.name + '"?')) {
+    
+    // Messaggio di conferma più dettagliato
+    if (!confirm('⚠️ ATTENZIONE!\n\nSei sicuro di voler eliminare il preventivo "' + quote.name + '"?\n\nTutte le informazioni andranno PERSE DEFINITIVAMENTE e il file verrà rimosso anche da GitHub.')) {
+        return;
+    }
+    
+    try {
+        // Elimina da GitHub
+        const token = getGitHubToken();
+        if (token) {
+            const date = new Date(quote.createdAt.split(', ')[0].split('/').reverse().join('-'));
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const fileName = `${year}/${month}/preventivo_${quote.id}.json`;
+            
+            // Prima ottieni lo SHA del file
+            const checkResponse = await fetch(
+                `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`,
+                {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                }
+            );
+            
+            if (checkResponse.ok) {
+                const fileData = await checkResponse.json();
+                const sha = fileData.sha;
+                
+                // Ora elimina il file
+                const deleteResponse = await fetch(
+                    `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`,
+                    {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: `Elimina preventivo: ${quote.name}`,
+                            sha: sha
+                        })
+                    }
+                );
+                
+                if (deleteResponse.ok) {
+                    console.log('✅ Eliminato da GitHub:', fileName);
+                } else {
+                    console.error('❌ Errore eliminazione da GitHub');
+                }
+            }
+        }
+        
+        // Elimina da array locale e localStorage
         savedQuotes = savedQuotes.filter(q => q.id !== quoteId);
         localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
         renderSavedQuotes();
         updateAnalytics();
-        showNotification('🗑️ Preventivo eliminato', 'success');  // <-- CAMBIA questa riga
+        showNotification('✅ Preventivo eliminato definitivamente', 'success');
+        
+    } catch (error) {
+        console.error('❌ Errore eliminazione:', error);
+        showNotification('⚠️ Preventivo eliminato localmente ma errore su GitHub', 'warning');
+        
+        // Elimina comunque localmente
+        savedQuotes = savedQuotes.filter(q => q.id !== quoteId);
+        localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
+        renderSavedQuotes();
+        updateAnalytics();
     }
 }
 
