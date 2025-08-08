@@ -25,13 +25,50 @@ function updateConnectionStatus(status, message) {
     }
 }
 
-function showNotification(message, type) {
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notifications-container');
+    if (!container) {
+        // Crea container se non esiste
+        const newContainer = document.createElement('div');
+        newContainer.id = 'notifications-container';
+        newContainer.className = 'notifications-container';
+        document.body.appendChild(newContainer);
+    }
+    
     const notification = document.createElement('div');
-    notification.className = 'notification ' + (type || 'info');
-    notification.textContent = message;
-    document.body.appendChild(notification);
+    notification.className = `notification ${type}`;
+    
+    // Icone per tipo
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    // Titoli per tipo
+    const titles = {
+        success: 'Successo!',
+        error: 'Errore',
+        warning: 'Attenzione',
+        info: 'Info'
+    };
+    
+    notification.innerHTML = `
+        <div class="notification-icon">${icons[type]}</div>
+        <div class="notification-content">
+            <div class="notification-title">${titles[type]}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.classList.add('removing'); setTimeout(() => this.parentElement.remove(), 300)">×</button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto-remove dopo 5 secondi
     setTimeout(() => {
-        notification.remove();
+        notification.classList.add('removing');
+        setTimeout(() => notification.remove(), 300);
     }, 5000);
 }
 // SISTEMA DI AUTENTICAZIONE - DEVE ESSERE GLOBALE
