@@ -633,7 +633,6 @@ function processEquipmentData(values) {
                 });
                 processedRows++;
             } else {
-                showNotification('⚠️ Riga saltata (no categoria o prezzi):', name);
                 skippedRows++;
             }
         } else {
@@ -746,7 +745,7 @@ function renderDatabase(data) {
     '<td>€ ' + item.price3.toFixed(2) + '</td>' +
     '<td>€ ' + item.price7.toFixed(2) + '</td>' +
     '<td>€ ' + item.insurance.toLocaleString() + '</td>' +
-    '<td style="font-size: 12px; color: #666; max-width: 200px;">' + item.kit + '</td>' +
+    '<td style="font-size: 12px; color: #666; max-width: 200px;">' + (item.kit || '') + '</td>' +  // AGGIUNGI || '' QUI
     '<td style="font-size: 12px; color: #999;">' + (item.serial || '-') + '</td>' +
     '<td><button class="btn btn-warning" onclick="editEquipment(\'' + item.category + '\', \'' + item.name + '\')" style="padding: 6px 12px; font-size: 12px;">✏️</button></td>';
         tbody.appendChild(row);
