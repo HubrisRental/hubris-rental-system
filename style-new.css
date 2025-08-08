@@ -536,7 +536,10 @@ select.form-input {
 .equipment-header h3 {
     font-size: 18px;
     font-weight: 600;
-    color: white !important;  /* AGGIUNGI QUESTA RIGA */
+    color: white !important;  
+}
+.equipment-header * {
+    color: white !important;
 }
 
 /* Righe attrezzature */
