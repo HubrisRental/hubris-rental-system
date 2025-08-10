@@ -824,8 +824,14 @@ async function loadQuotesFromGitHub() {
             console.log('⚠️ Token GitHub mancante, uso solo localStorage');
             const stored = localStorage.getItem('hubris_quotes');
             if (stored) {
-                savedQuotes = JSON.parse(stored);
-                renderSavedQuotes();
+                try {
+                    savedQuotes = JSON.parse(stored);
+                    renderSavedQuotes();
+                } catch (e) {
+                    console.error('Errore parsing localStorage:', e);
+                    savedQuotes = [];
+                    renderSavedQuotes();
+                }
             }
             return;
         }
@@ -834,57 +840,112 @@ async function loadQuotesFromGitHub() {
         
         // Funzione ricorsiva per leggere cartelle
         async function readDirectory(path = '') {
-            const response = await fetch(
-                `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`,
-                {
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
+            try {
+                const response = await fetch(
+                    `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`,
+                    {
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.log('📁 Cartella non trovata:', path);
+                        return [];
+                    }
+                    if (response.status === 401) {
+                        throw new Error('Token non valido');
+                    }
+                    console.error('Errore risposta:', response.status);
+                    return [];
+                }
+                
+                const items = await response.json();
+                const jsonFiles = [];
+                
+                for (const item of items) {
+                    if (item.type === 'dir') {
+                        // Se è una cartella, leggila ricorsivamente
+                        const subFiles = await readDirectory(item.path);
+                        jsonFiles.push(...subFiles);
+                    } else if (item.name.startsWith('preventivo_') && item.name.endsWith('.json')) {
+                        jsonFiles.push(item);
                     }
                 }
-            );
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Token non valido');
-                }
-                throw new Error('Errore caricamento: ' + response.status);
+                
+                return jsonFiles;
+            } catch (error) {
+                console.error('Errore lettura directory:', path, error);
+                return [];
             }
-            
-            const items = await response.json();
-            const jsonFiles = [];
-            
-            for (const item of items) {
-                if (item.type === 'dir') {
-                    // Se è una cartella, leggila ricorsivamente
-                    const subFiles = await readDirectory(item.path);
-                    jsonFiles.push(...subFiles);
-                } else if (item.name.startsWith('preventivo_') && item.name.endsWith('.json')) {
-                    jsonFiles.push(item);
-                }
-            }
-            
-            return jsonFiles;
         }
         
         const files = await readDirectory();
         const preventivi = [];
+        let erroriCaricamento = 0;
         
-        // Carica ogni file
+        // Carica ogni file con gestione errori migliorata
         for (const file of files) {
             try {
+                console.log('📄 Caricamento file:', file.name);
                 const fileResponse = await fetch(file.download_url);
-                const quote = await fileResponse.json();
-                preventivi.push(quote);
+                const fileText = await fileResponse.text();
+                
+                // Prova a parsare il JSON
+                try {
+                    const quote = JSON.parse(fileText);
+                    
+                    // Valida che abbia i campi minimi necessari
+                    if (quote && quote.id) {
+                        preventivi.push(quote);
+                        console.log('✅ Caricato:', quote.name || 'Senza nome');
+                    } else {
+                        console.warn('⚠️ Preventivo senza ID:', file.name);
+                    }
+                } catch (parseError) {
+                    console.error('❌ Errore parsing JSON per', file.name, ':', parseError.message);
+                    console.log('Contenuto problematico:', fileText.substring(0, 200));
+                    erroriCaricamento++;
+                }
             } catch (e) {
-                console.error('Errore caricamento file:', file.name, e);
+                console.error('❌ Errore caricamento file:', file.name, e);
+                erroriCaricamento++;
             }
         }
         
-        savedQuotes = preventivi.sort((a, b) => b.id - a.id);
-        localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
-        renderSavedQuotes();
-        console.log(`✅ Caricati ${preventivi.length} preventivi da GitHub`);
+        if (erroriCaricamento > 0) {
+            showNotification(`⚠️ ${erroriCaricamento} preventivi con errori non caricati`, 'warning');
+        }
+        
+        // Salva i preventivi validi
+        if (preventivi.length > 0) {
+            savedQuotes = preventivi.sort((a, b) => (b.id || 0) - (a.id || 0));
+            localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
+            renderSavedQuotes();
+            console.log(`✅ Caricati ${preventivi.length} preventivi da GitHub`);
+            showNotification(`✅ Caricati ${preventivi.length} preventivi`, 'success');
+        } else {
+            console.log('⚠️ Nessun preventivo valido trovato su GitHub');
+            
+            // Prova il fallback su localStorage
+            const stored = localStorage.getItem('hubris_quotes');
+            if (stored) {
+                try {
+                    savedQuotes = JSON.parse(stored);
+                    renderSavedQuotes();
+                    showNotification('📂 Caricati preventivi da backup locale', 'info');
+                } catch (e) {
+                    savedQuotes = [];
+                    renderSavedQuotes();
+                }
+            } else {
+                savedQuotes = [];
+                renderSavedQuotes();
+            }
+        }
         
     } catch (error) {
         console.error('❌ Errore caricamento da GitHub:', error);
@@ -892,15 +953,24 @@ async function loadQuotesFromGitHub() {
         if (error.message === 'Token non valido') {
             showNotification('❌ Token GitHub non valido!', 'error');
             localStorage.removeItem('hubris_github_token');
+        } else {
+            showNotification('❌ Errore connessione GitHub', 'error');
         }
         
         // Fallback su localStorage
         const stored = localStorage.getItem('hubris_quotes');
         if (stored) {
-            savedQuotes = JSON.parse(stored);
+            try {
+                savedQuotes = JSON.parse(stored);
+                renderSavedQuotes();
+                showNotification('⚠️ Caricamento da backup locale', 'warning');
+            } catch (e) {
+                savedQuotes = [];
+                renderSavedQuotes();
+            }
+        } else {
+            savedQuotes = [];
             renderSavedQuotes();
-            showNotification('⚠️ Caricamento da backup locale', 'warning');
-            console.log('📁 Trovati questi file/cartelle:', items.map(i => i.path));
         }
     }
 }
