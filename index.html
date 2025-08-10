@@ -259,7 +259,19 @@
             <div>
                 <button class="btn btn-warning" onclick="syncQuotes()">🔄 Aggiorna</button>
                 <button class="btn btn-info" onclick="exportAllQuotes()">📊 Export Excel</button>
-                <button class="btn btn-success" onclick="loadQuotesFromGitHub()">🔄 Ricarica da GitHub</button>
+                <button class="btn btn-success" onclick="cleanAndReloadQuotes()">🔄 Ricarica da GitHub</button>
+                
+                <script>
+                function cleanAndReloadQuotes() {
+                    console.log('🧹 Pulizia e ricaricamento preventivi...');
+                    localStorage.removeItem('hubris_quotes');
+                    savedQuotes = [];
+                    renderSavedQuotes();
+                    setTimeout(() => {
+                        loadQuotesFromGitHub();
+                    }, 500);
+                }
+                </script>
             </div>
         </div>
         <div class="quotes-grid" id="savedQuotes">
