@@ -473,7 +473,6 @@ async function loadDatabaseFromSheets() {
         });
 
         console.log(`✅ Database caricato: ${categoriesCount} categorie, ${itemsCount} articoli`, 'success');
-        showNotification('✅ Database processato con successo');
 
     } catch (error) {
         console.error('❌ Errore dettagliato caricamento database:', error);
@@ -3740,6 +3739,29 @@ window.addEventListener('load', function() {
     
     console.log('🚀 Inizializzazione sistema Hubris Rental...');
     
+    // CARICAMENTO PREVENTIVI - SUBITO DOPO LOGIN
+    setTimeout(() => {
+        console.log('📂 Caricamento preventivi salvati...');
+        
+        // Prima prova a caricare da localStorage
+        const stored = localStorage.getItem('hubris_quotes');
+        if (stored) {
+            try {
+                savedQuotes = JSON.parse(stored);
+                renderSavedQuotes();
+                console.log('✅ Caricati', savedQuotes.length, 'preventivi da cache locale');
+            } catch (e) {
+                console.error('Errore parsing preventivi locali:', e);
+                savedQuotes = [];
+            }
+        }
+        
+        // Poi prova a sincronizzare con GitHub
+        loadQuotesFromGitHub().catch(error => {
+            console.log('⚠️ GitHub non disponibile, uso solo cache locale');
+        });
+    }, 500);
+    
     // Carica configurazione salvata (NON DUPLICARE QUESTE RIGHE!)
     const savedApiKey = localStorage.getItem('hubris_api_key');
     const savedSheetsId = localStorage.getItem('hubris_sheets_id');
@@ -3761,12 +3783,11 @@ window.addEventListener('load', function() {
         sheetsId: CONFIG.SHEETS_ID ? CONFIG.SHEETS_ID.substring(0, 10) + '...' : 'non impostato'
     });
     
-    // Carica sempre i preventivi da localStorage prima di tutto
-    loadQuotesFromGitHub();
+    // RIMUOVI QUESTA RIGA - È DUPLICATA!
+    // loadQuotesFromGitHub();  <-- ELIMINA QUESTA
     
     // Inizializza Google API solo se configurato
     if (CONFIG.API_KEY && CONFIG.SHEETS_ID) {
-        showNotification('🔄 Configurazione presente, verifica validità...');
         
         // Verifica base della API key
         if (!CONFIG.API_KEY.startsWith('AIza') || CONFIG.API_KEY.length < 39) {
@@ -3793,9 +3814,7 @@ window.addEventListener('load', function() {
         }
     }, 600000); // 10 minuti
     
-    showNotification('✅ Inizializzazione completata');
 });
-
 // Global error handler
 // GESTIONE ERRORI GLOBALE MIGLIORATA
 window.addEventListener('error', function(e) {
