@@ -618,11 +618,6 @@ select.form-input {
    11. DROPDOWN MIGLIORATI
    ===================================================== */
 
-.select-search-wrapper {
-    position: relative;
-    z-index: 100;
-}
-
 .select-search {
     position: absolute;
     top: 100%;
@@ -633,10 +628,21 @@ select.form-input {
     border-radius: var(--radius-lg);
     max-height: 240px;
     overflow-y: auto;
-    z-index: 9999;
+    z-index: 99999;  /* AUMENTA QUESTO VALORE */
     display: none;
     box-shadow: var(--shadow-xl);
     margin-top: 4px;
+    min-width: 300px;  /* AGGIUNGI LARGHEZZA MINIMA */
+}
+
+.equipment-row.dropdown-open {
+    z-index: 9998 !important;
+    position: relative;
+}
+
+.select-search-wrapper {
+    position: relative;
+    z-index: 9997;
 }
 
 .select-search.active {
