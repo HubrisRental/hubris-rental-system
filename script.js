@@ -1165,17 +1165,30 @@ function moveRow(rowId, direction) {
 function toggleSearchDropdown(rowId, type) {
     const dropdown = document.getElementById(`dropdown-${type === 'category' ? 'cat' : 'eq'}-${rowId}`);
     const row = document.getElementById(`row-${rowId}`);
+    const input = document.getElementById(`search-${type === 'category' ? 'cat' : 'eq'}-${rowId}`);
     const wasActive = dropdown.classList.contains('active');
     
     // Close all dropdowns
     document.querySelectorAll('.select-search').forEach(d => d.classList.remove('active'));
-    document.querySelectorAll('.equipment-row').forEach(r => r.classList.remove('dropdown-open')); // Rimuovi classe da tutte le righe
+    document.querySelectorAll('.equipment-row').forEach(r => r.classList.remove('dropdown-open'));
     
     // Toggle this dropdown
     if (!wasActive) {
+        // Calcola posizione dinamica
+        const rect = input.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = (rect.bottom + 2) + 'px';
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.width = rect.width + 'px';
+        
         dropdown.classList.add('active');
-        row.classList.add('dropdown-open'); // Aggiungi classe alla riga corrente
-        dropdown.querySelector('.select-search-input').focus();
+        row.classList.add('dropdown-open');
+        
+        // Focus sulla ricerca interna
+        const searchInput = dropdown.querySelector('.select-search-input');
+        if (searchInput) {
+            searchInput.focus();
+        }
     }
 }
 
@@ -1557,34 +1570,21 @@ function saveQuote() {
     // SALVATAGGIO DOPPIO: localStorage + Google Sheets
     
     // 1. Salva sempre in localStorage (immediato)
-    localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
-    
-  // 2. Salva su Google Sheets in background
-saveQuoteToGitHub(quote).then(googleSaveSuccess => {
-    if (googleSaveSuccess) {
-        showNotification('✅ Sincronizzazione Google Sheets completata');
+localStorage.setItem('hubris_quotes', JSON.stringify(savedQuotes));
+
+// 2. Poi prova a salvare su GitHub (in background)
+saveQuoteToGitHub(quote).then(success => {
+    if (success) {
+        showNotification('✅ Salvato anche su GitHub', 'success');
     } else {
-        showNotification('⚠️ Sincronizzazione Google Sheets fallita');
+        showNotification('⚠️ Salvato solo localmente', 'warning');
     }
-}).catch(error => {
-    console.error('❌ Errore sincronizzazione:', error);
 });
 
-// Aggiorna UI (sempre immediato)
+// 3. Aggiorna UI
 renderSavedQuotes();
 updateAnalytics();
-
-// Notifica di salvataggio (sempre successo locale)
-if (isEditMode) {
-    console.log(`✅ Preventivo "${quoteName}" aggiornato!`, 'success');
-} else {
-    console.log(`✅ Nuovo preventivo "${quoteName}" salvato!`, 'success');
-    // Entra in modalità modifica dopo il primo salvataggio
-    currentQuoteId = quote.id;
-    isEditMode = true;
-    updateUIMode();
-}
-}
+showNotification('✅ Preventivo salvato!', 'success');
 
 
 function updateUIMode() {
