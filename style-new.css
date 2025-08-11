@@ -634,10 +634,18 @@ select.form-input {
     margin-top: 4px;
     min-width: 300px;  /* AGGIUNGI LARGHEZZA MINIMA */
 }
+/* AGGIUNGI QUESTE REGOLE SUBITO DOPO .select-search */
+.equipment-section {
+    position: relative;
+    overflow: visible !important;
+}
+
+.equipment-row {
+    position: relative;
+}
 
 .equipment-row.dropdown-open {
-    z-index: 9998 !important;
-    position: relative;
+    z-index: 10000 !important;
 }
 
 .select-search-wrapper {
