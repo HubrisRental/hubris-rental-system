@@ -1585,7 +1585,7 @@ saveQuoteToGitHub(quote).then(success => {
 renderSavedQuotes();
 updateAnalytics();
 showNotification('✅ Preventivo salvato!', 'success');
-
+}
 
 function updateUIMode() {
     const saveBtn = document.getElementById('saveBtn');
