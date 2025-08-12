@@ -3858,6 +3858,8 @@ function resetQuote() {
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
     }
+    }
+    
     // ========================================
 // GESTIONE VALORI ASSICURATIVI
 // ========================================
@@ -4512,24 +4514,50 @@ async function loadInsuranceDataFromGitHub() {
     } catch (error) {
         console.error('❌ Errore caricamento assicurazioni da GitHub:', error);
     }
-}
+}  
 
-// Inizializza la tab assicurazione quando si apre
+// Override della funzione showTab per gestire la tab assicurazione
+const originalShowTab = window.showTab;
+if (originalShowTab) {
+    window.showTab = function(tabName) {
+        // Chiama la funzione originale
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.getElementById(tabName).classList.add('active');
+        event.target.classList.add('active');
+        
+        // Logica specifica per tab
+        if (tabName === 'analytics') {
+            updateAnalytics();
+        }
+        
+        // NUOVO - per tab assicurazione
+        if (tabName === 'insurance') {
+            populateInsuranceQuoteSelector();
+        }
+    };
+     // Event listeners per la tab assicurazione
 document.addEventListener('DOMContentLoaded', function() {
+    // Listener per il selector
+    const insuranceSelector = document.getElementById('insurance-quote-selector');
+    if (insuranceSelector) {
+        insuranceSelector.addEventListener('change', loadInsuranceForQuote);
+    }
+    
+    // Listener per il bottone sync
+    const syncBtn = document.getElementById('syncInsuranceBtn');
+    if (syncBtn) {
+        syncBtn.addEventListener('click', syncInsuranceWithQuote);
+    }
+    
     // Carica dati assicurativi dopo i preventivi
     setTimeout(() => {
         loadInsuranceDataFromGitHub();
     }, 3000);
-});
-
-// Aggiorna il selector quando si apre la tab
-window.showTabOriginal = window.showTab;
-window.showTab = function(tabName) {
-    window.showTabOriginal(tabName);
-    
-    if (tabName === 'insurance') {
-        populateInsuranceQuoteSelector();
-    }
-};
+}); 
 }
 
