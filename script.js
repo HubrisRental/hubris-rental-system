@@ -1470,17 +1470,44 @@ function updateAllPrices() {
 }
 
 function updateTotals() {
-    const totalCells = document.querySelectorAll('[id^="total-"]');
     let subtotal = 0;
-    totalCells.forEach(cell => {
-        const value = parseFloat(cell.textContent.replace('€ ', '')) || 0;
-        subtotal += value;
+    
+    // Calcola totali da TUTTE le righe (normali, custom e servizi)
+    const allRows = document.querySelectorAll('[id^="row-"]');
+    
+    allRows.forEach(row => {
+        const rowId = row.id.split('-')[1];
+        
+        if (row.classList.contains('service-row')) {
+            // Totale servizi
+            const totalElement = document.getElementById('total-' + rowId);
+            if (totalElement) {
+                const value = parseFloat(totalElement.textContent.replace('€ ', '')) || 0;
+                subtotal += value;
+            }
+        } else if (row.classList.contains('custom-row')) {
+            // Totale custom
+            const totalElement = document.getElementById('custom-total-' + rowId);
+            if (totalElement) {
+                const value = parseFloat(totalElement.textContent.replace('€ ', '')) || 0;
+                subtotal += value;
+            }
+        } else {
+            // Totale attrezzature normali
+            const totalElement = document.getElementById('total-' + rowId);
+            if (totalElement) {
+                const value = parseFloat(totalElement.textContent.replace('€ ', '')) || 0;
+                subtotal += value;
+            }
+        }
     });
+    
     const discountPercent = parseFloat(document.getElementById('sconto').value) || 0;
     const discountAmount = subtotal * (discountPercent / 100);
     const imponibile = subtotal - discountAmount;
     const iva = imponibile * 0.22;
     const totale = imponibile + iva;
+    
     document.getElementById('subtotale').textContent = '€ ' + subtotal.toFixed(2);
     document.getElementById('discount-percent').textContent = discountPercent.toFixed(1);
     document.getElementById('sconto-amount').textContent = '€ ' + discountAmount.toFixed(2);
@@ -2229,48 +2256,67 @@ doc.rect(110, 55, 85, 45);
         doc.setTextColor(44, 90, 160);
        doc.text('DETTAGLIO ATTREZZATURE E SERVIZI', 105, 110, { align: 'center' }); // Era 115
         
-        // PREPARAZIONE DATI TABELLA
-        const equipmentData = [];
-        const servicesData = [];
+// PREPARAZIONE DATI TABELLA
+const equipmentData = [];
+const servicesData = [];
+
+document.querySelectorAll('[id^="row-"]').forEach(row => {
+    const rowId = row.id.split('-')[1];
+    
+    if (row.classList.contains('service-row')) {
+        const serviceName = document.getElementById('service-name-' + rowId)?.value || '';
+        const serviceNotes = document.getElementById('service-notes-' + rowId)?.value || '';
+        const quantity = document.getElementById('qty-' + rowId)?.value || '';
+        const price = parseFloat(document.getElementById('service-price-' + rowId)?.value || '0');
+        const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
         
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
-            
-            if (row.classList.contains('service-row')) {
-                const serviceName = document.getElementById('service-name-' + rowId)?.value || '';
-                const serviceNotes = document.getElementById('service-notes-' + rowId)?.value || '';
-                const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                const price = parseFloat(document.getElementById('service-price-' + rowId)?.value || '0');
-                const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
-                
-                if (serviceName) {
-                    servicesData.push([
-                        'Servizi',
-                        serviceName + (serviceNotes ? '\n' + serviceNotes : ''),
-                        quantity,
-                        '€ ' + price.toFixed(2),
-                        '€ ' + total.toFixed(2)
-                    ]);
-                }
-            } else {
-                const category = document.getElementById('category-' + rowId)?.value || '';
-                const equipment = document.getElementById('equipment-' + rowId)?.value || '';
-                const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                const priceText = document.getElementById('price-' + rowId)?.value || '€ 0.00';
-                const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
-                const kitInfo = document.getElementById('kit-' + rowId)?.value || '';
-                
-                if (category && equipment) {
-                    equipmentData.push([
-                        category,
-                        equipment + (kitInfo ? '\n' + kitInfo : ''),
-                        quantity,
-                        priceText,
-                        '€ ' + total.toFixed(2)
-                    ]);
-                }
-            }
-        });
+        if (serviceName) {
+            servicesData.push([
+                'Servizi',
+                serviceName + (serviceNotes ? '\n' + serviceNotes : ''),
+                quantity,
+                '€ ' + price.toFixed(2),
+                '€ ' + total.toFixed(2)
+            ]);
+        }
+    } else if (row.classList.contains('custom-row')) {
+        // CUSTOM - AGGIUNTE ALLA TABELLA ATTREZZATURE
+        const category = document.getElementById('custom-category-' + rowId)?.value || 'CUSTOM';
+        const equipment = document.getElementById('custom-equipment-' + rowId)?.value || '';
+        const kitInfo = document.getElementById('custom-kit-' + rowId)?.value || '';
+        const quantity = document.getElementById('custom-qty-' + rowId)?.value || '';
+        const price = parseFloat(document.getElementById('custom-price-' + rowId)?.value || '0');
+        const total = parseFloat(document.getElementById('custom-total-' + rowId)?.textContent.replace('€ ', '') || '0');
+        
+        if (equipment) {
+            equipmentData.push([
+                category,
+                equipment + (kitInfo ? '\n' + kitInfo : ''),
+                quantity,
+                '€ ' + price.toFixed(2),
+                '€ ' + total.toFixed(2)
+            ]);
+        }
+    } else {
+        // ATTREZZATURE NORMALI
+        const category = document.getElementById('category-' + rowId)?.value || '';
+        const equipment = document.getElementById('equipment-' + rowId)?.value || '';
+        const quantity = document.getElementById('qty-' + rowId)?.value || '';
+        const priceText = document.getElementById('price-' + rowId)?.value || '€ 0.00';
+        const total = parseFloat(document.getElementById('total-' + rowId)?.textContent.replace('€ ', '') || '0');
+        const kitInfo = document.getElementById('kit-' + rowId)?.value || '';
+        
+        if (category && equipment) {
+            equipmentData.push([
+                category,
+                equipment + (kitInfo ? '\n' + kitInfo : ''),
+                quantity,
+                priceText,
+                '€ ' + total.toFixed(2)
+            ]);
+        }
+    }
+});
         
         // TABELLA ATTREZZATURE
         let currentY = 125;
@@ -2572,28 +2618,44 @@ doc.rect(110, 55, 85, 45);
         doc.setTextColor(44, 90, 160);
         doc.text('BENI TRASPORTATI', 105, 115, { align: 'center' });
         
-        // PREPARAZIONE DATI TABELLA
-        const equipmentData = [];
+// PREPARAZIONE DATI TABELLA
+const equipmentData = [];
+
+document.querySelectorAll('[id^="row-"]').forEach(row => {
+    const rowId = row.id.split('-')[1];
+    
+    if (row.classList.contains('custom-row')) {
+        // CUSTOM nel DDT
+        const category = document.getElementById('custom-category-' + rowId)?.value || 'CUSTOM';
+        const equipment = document.getElementById('custom-equipment-' + rowId)?.value || '';
+        const quantity = document.getElementById('custom-qty-' + rowId)?.value || '';
+        const kitInfo = document.getElementById('custom-kit-' + rowId)?.value || '';
         
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
-            
-            if (!row.classList.contains('service-row')) {
-                const category = document.getElementById('category-' + rowId)?.value || '';
-                const equipment = document.getElementById('equipment-' + rowId)?.value || '';
-                const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                const kitInfo = document.getElementById('kit-' + rowId)?.value || '';
-                
-                if (category && equipment) {
-                    equipmentData.push([
-                        category,
-                        equipment,
-                        quantity,
-                        kitInfo || 'Kit standard'
-                    ]);
-                }
-            }
-        });
+        if (equipment) {
+            equipmentData.push([
+                category,
+                equipment,
+                quantity,
+                kitInfo || 'Kit personalizzato'
+            ]);
+        }
+    } else if (!row.classList.contains('service-row')) {
+        // Attrezzature normali
+        const category = document.getElementById('category-' + rowId)?.value || '';
+        const equipment = document.getElementById('equipment-' + rowId)?.value || '';
+        const quantity = document.getElementById('qty-' + rowId)?.value || '';
+        const kitInfo = document.getElementById('kit-' + rowId)?.value || '';
+        
+        if (category && equipment) {
+            equipmentData.push([
+                category,
+                equipment,
+                quantity,
+                kitInfo || 'Kit standard'
+            ]);
+        }
+    }
+});
         
         // TABELLA BENI TRASPORTATI
         if (equipmentData.length > 0) {
@@ -2802,42 +2864,57 @@ doc.rect(110, 55, 85, 45);
         doc.setTextColor(44, 90, 160);
         doc.text('LISTA ATTREZZATURE E SERVIZI', 105, 115, { align: 'center' });
         
-        // PREPARAZIONE DATI SENZA PREZZI
-        const equipmentData = [];
-        const servicesData = [];
+// PREPARAZIONE DATI SENZA PREZZI
+const equipmentData = [];
+const servicesData = [];
+
+document.querySelectorAll('[id^="row-"]').forEach(row => {
+    const rowId = row.id.split('-')[1];
+    
+    if (row.classList.contains('service-row')) {
+        const serviceName = document.getElementById('service-name-' + rowId)?.value || '';
+        const serviceNotes = document.getElementById('service-notes-' + rowId)?.value || '';
+        const quantity = document.getElementById('qty-' + rowId)?.value || '';
         
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
-            
-            if (row.classList.contains('service-row')) {
-                const serviceName = document.getElementById('service-name-' + rowId)?.value || '';
-                const serviceNotes = document.getElementById('service-notes-' + rowId)?.value || '';
-                const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                
-                if (serviceName) {
-                    servicesData.push([
-                        'Servizi',
-                        serviceName,
-                        quantity,
-                        serviceNotes || 'Servizio personalizzato'
-                    ]);
-                }
-            } else {
-                const category = document.getElementById('category-' + rowId)?.value || '';
-                const equipment = document.getElementById('equipment-' + rowId)?.value || '';
-                const quantity = document.getElementById('qty-' + rowId)?.value || '';
-                const kitInfo = document.getElementById('kit-' + rowId)?.value || '';
-                
-                if (category && equipment) {
-                    equipmentData.push([
-                        category,
-                        equipment,
-                        quantity,
-                        kitInfo || 'Kit completo'
-                    ]);
-                }
-            }
-        });
+        if (serviceName) {
+            servicesData.push([
+                'Servizi',
+                serviceName,
+                quantity,
+                serviceNotes || 'Servizio personalizzato'
+            ]);
+        }
+    } else if (row.classList.contains('custom-row')) {
+        // CUSTOM senza prezzi
+        const category = document.getElementById('custom-category-' + rowId)?.value || 'CUSTOM';
+        const equipment = document.getElementById('custom-equipment-' + rowId)?.value || '';
+        const quantity = document.getElementById('custom-qty-' + rowId)?.value || '';
+        const kitInfo = document.getElementById('custom-kit-' + rowId)?.value || '';
+        
+        if (equipment) {
+            equipmentData.push([
+                category,
+                equipment,
+                quantity,
+                kitInfo || 'Kit personalizzato'
+            ]);
+        }
+    } else {
+        const category = document.getElementById('category-' + rowId)?.value || '';
+        const equipment = document.getElementById('equipment-' + rowId)?.value || '';
+        const quantity = document.getElementById('qty-' + rowId)?.value || '';
+        const kitInfo = document.getElementById('kit-' + rowId)?.value || '';
+        
+        if (category && equipment) {
+            equipmentData.push([
+                category,
+                equipment,
+                quantity,
+                kitInfo || 'Kit completo'
+            ]);
+        }
+    }
+});
         
         // TABELLA ATTREZZATURE SENZA PREZZI
         let currentY = 125;
@@ -3108,40 +3185,44 @@ doc.rect(110, 55, 85, 45);
         doc.setTextColor(44, 90, 160);
         doc.text('ATTREZZATURE DA ASSICURARE', 105, 115, { align: 'center' });
         
-        // PREPARAZIONE DATI ASSICURAZIONE CON SERIALI
-        const insuranceData = [];
-        let totalInsurance = 0;
+// PREPARAZIONE DATI ASSICURAZIONE CON SERIALI
+const insuranceData = [];
+let totalInsurance = 0;
+
+document.querySelectorAll('[id^="row-"]').forEach(row => {
+    const rowId = row.id.split('-')[1];
+    
+    if (row.classList.contains('custom-row')) {
+        // CUSTOM - saltiamo per l'assicurazione (non hanno valore predefinito)
+        // Verranno gestite nella pagina dedicata ai valori assicurativi
         
-        document.querySelectorAll('[id^="row-"]').forEach(row => {
-            const rowId = row.id.split('-')[1];
+    } else if (!row.classList.contains('service-row')) {
+        // Solo attrezzature normali dal database
+        const category = document.getElementById('category-' + rowId)?.value || '';
+        const equipment = document.getElementById('equipment-' + rowId)?.value || '';
+        const quantity = parseInt(document.getElementById('qty-' + rowId)?.value || '1') || 1;
+        
+        if (category && equipment && equipmentDatabase[category] && equipmentDatabase[category][equipment]) {
+            const itemData = equipmentDatabase[category][equipment];
+            const insurance = itemData.insurance || 0;
+            const serial = itemData.serial || 'N/A';
             
-            // Solo attrezzature (non servizi) hanno valori assicurativi
-            if (!row.classList.contains('service-row')) {
-                const category = document.getElementById('category-' + rowId)?.value || '';
-                const equipment = document.getElementById('equipment-' + rowId)?.value || '';
-                const quantity = parseInt(document.getElementById('qty-' + rowId)?.value || '1') || 1;
+            if (insurance > 0) {
+                const totalValue = insurance * quantity;
+                totalInsurance += totalValue;
                 
-                if (category && equipment && equipmentDatabase[category] && equipmentDatabase[category][equipment]) {
-                    const itemData = equipmentDatabase[category][equipment];
-                    const insurance = itemData.insurance || 0;
-                    const serial = itemData.serial || 'N/A';
-                    
-                    if (insurance > 0) {
-                        const totalValue = insurance * quantity;
-                        totalInsurance += totalValue;
-                        
-                        insuranceData.push([
-                            category,
-                            equipment,
-                            quantity.toString(),
-                            serial,
-                            '€ ' + insurance.toLocaleString('it-IT'),
-                            '€ ' + totalValue.toLocaleString('it-IT')
-                        ]);
-                    }
-                }
+                insuranceData.push([
+                    category,
+                    equipment,
+                    quantity.toString(),
+                    serial,
+                    '€ ' + insurance.toLocaleString('it-IT'),
+                    '€ ' + totalValue.toLocaleString('it-IT')
+                ]);
             }
-        });
+        }
+    }
+});
         
         // TABELLA VALORI ASSICURATIVI CON SERIALI
         if (insuranceData.length > 0) {
