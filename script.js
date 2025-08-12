@@ -1191,7 +1191,25 @@ function toggleSearchDropdown(rowId, type) {
         }
     }
 }
-
+// Previeni la chiusura del dropdown quando si clicca al suo interno
+document.addEventListener('click', function(e) {
+    // Se il click è dentro un dropdown, non chiuderlo
+    if (e.target.closest('.select-search')) {
+        e.stopPropagation();
+        return;
+    }
+    
+    // Se il click è su un input di ricerca, non chiudere
+    if (e.target.matches('[id^="search-"]')) {
+        return;
+    }
+    
+    // Altrimenti chiudi tutti i dropdown
+    if (!e.target.closest('.select-search-wrapper')) {
+        document.querySelectorAll('.select-search').forEach(d => d.classList.remove('active'));
+        document.querySelectorAll('.equipment-row').forEach(r => r.classList.remove('dropdown-open'));
+    }
+});
 function filterSearchDropdown(rowId, type) {
     const searchInput = event.target;
     const searchTerm = searchInput.value.toLowerCase();
@@ -1203,8 +1221,8 @@ function filterSearchDropdown(rowId, type) {
         );
         
         optionsContainer.innerHTML = filtered.map(cat => 
-    `<div class="select-search-item" onclick="selectCategory(${rowId}, this)" data-category="${cat.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}">${cat}</div>`
-).join('');
+            `<div class="select-search-item" onclick="selectCategory(${rowId}, this)" data-category="${cat.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}">${cat}</div>`
+        ).join('');
     } else {
         const category = document.getElementById('category-' + rowId).value;
         if (!category) return;
@@ -1216,9 +1234,9 @@ function filterSearchDropdown(rowId, type) {
         );
         
         optionsContainer.innerHTML = filtered.map(item => 
-          `<div class="select-search-item" onclick="selectEquipment(${rowId}, this.dataset.equipment)" data-equipment="${item.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}" data-category="${category}">
-    ${item} <span class="category-label">${category}</span>
-</div>`
+            `<div class="select-search-item" onclick="selectEquipment(${rowId}, this)" data-equipment="${item.replace(/'/g, '&apos;').replace(/"/g, '&quot;')}" data-category="${category}">
+                ${item} <span class="category-label">${category}</span>
+            </div>`
         ).join('');
     }
 }
@@ -1251,7 +1269,7 @@ function selectCategory(rowId, categoryElement) {
 }
 
 function selectEquipment(rowId, equipmentElement) {
-    const equipment = equipmentElement.dataset.equipment;
+    const equipment = equipmentElement.dataset ? equipmentElement.dataset.equipment : equipmentElement;
     const category = document.getElementById('category-' + rowId).value;
     
     document.getElementById('equipment-' + rowId).value = equipment;
