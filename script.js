@@ -862,6 +862,7 @@ function updateDbStats() {
                        '<button class="btn btn-primary" onclick="loadQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📂</button> ' +
                        '<button class="btn btn-info" onclick="generateQuotePDF(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button> ' +
                        '<button class="btn btn-warning" onclick="generateDDTFromQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🚛</button> ' +
+                        '<button class="btn btn-info" onclick="openInsuranceForQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;" title="Gestione Assicurazione">🛡️</button> ' +
                        '<button class="btn btn-warning" onclick="duplicateQuoteById(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">📄</button> ' +
                        '<button class="btn btn-danger" onclick="deleteQuote(' + quote.id + ')" style="padding: 6px 12px; font-size: 12px;">🗑️</button>' +
                        '</div></div>';
@@ -3068,6 +3069,13 @@ if (servicesData.length > 0) {
 }
 
 function generateInsurance() {
+     if (currentQuoteId) {
+        const customInsuranceData = loadSavedInsuranceData(currentQuoteId);
+        if (customInsuranceData) {
+            generateInsurancePDFWithCustomValues(currentQuoteId);
+            return;
+        }
+    }
     const quoteName = document.getElementById('quoteName').value || 'Preventivo';
     const cliente = document.getElementById('cliente').value || 'Cliente';
     const clientePiva = document.getElementById('clientePiva').value || '';
@@ -3849,6 +3857,679 @@ function resetQuote() {
         
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
-    }    
+    }
+    // ========================================
+// GESTIONE VALORI ASSICURATIVI
+// ========================================
+
+let currentInsuranceData = null;
+let insuranceDataStore = {}; // Store locale per i dati assicurativi
+
+// Funzione per aprire la scheda assicurazione da un preventivo
+function openInsuranceForQuote(quoteId) {
+    // Carica il preventivo
+    const quote = savedQuotes.find(q => q.id === quoteId);
+    if (!quote) {
+        showNotification('❌ Preventivo non trovato!', 'error');
+        return;
+    }
+    
+    // Passa alla tab assicurazione
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.getElementById('insurance').classList.add('active');
+    document.querySelector('[onclick="showTab(\'insurance\')"]').classList.add('active');
+    
+    // Popola il selector e carica i dati
+    populateInsuranceQuoteSelector();
+    document.getElementById('insurance-quote-selector').value = quoteId;
+    loadInsuranceForQuote();
+    
+    showNotification('🛡️ Scheda assicurazione caricata', 'success');
+}
+
+// Popola il dropdown con i preventivi salvati
+function populateInsuranceQuoteSelector() {
+    const selector = document.getElementById('insurance-quote-selector');
+    selector.innerHTML = '<option value="">Seleziona un preventivo...</option>';
+    
+    savedQuotes.forEach(quote => {
+        const option = document.createElement('option');
+        option.value = quote.id;
+        option.textContent = quote.name + ' - ' + quote.cliente + ' (' + quote.createdAt + ')';
+        selector.appendChild(option);
+    });
+}
+
+// Carica i dati assicurativi per un preventivo
+function loadInsuranceForQuote() {
+    const quoteId = document.getElementById('insurance-quote-selector').value;
+    
+    if (!quoteId) {
+        document.getElementById('insurance-info').style.display = 'none';
+        document.getElementById('insurance-empty').style.display = 'block';
+        return;
+    }
+    
+    const quote = savedQuotes.find(q => q.id == quoteId);
+    if (!quote) {
+        showNotification('❌ Preventivo non trovato!', 'error');
+        return;
+    }
+    
+    // Mostra la sezione info
+    document.getElementById('insurance-info').style.display = 'block';
+    document.getElementById('insurance-empty').style.display = 'none';
+    
+    // Popola i dati base
+    document.getElementById('insurance-cliente').value = quote.cliente || '';
+    document.getElementById('insurance-progetto').value = quote.name || '';
+    document.getElementById('insurance-data').value = new Date().toISOString().split('T')[0];
+    
+    // Controlla se esistono dati salvati
+    const savedInsuranceData = loadSavedInsuranceData(quoteId);
+    
+    if (savedInsuranceData) {
+        // Usa i dati salvati
+        renderInsuranceItems(savedInsuranceData.items);
+        document.getElementById('insurance-data').value = savedInsuranceData.data_valutazione || new Date().toISOString().split('T')[0];
+    } else {
+        // Genera i dati dal preventivo
+        const insuranceItems = generateInsuranceItemsFromQuote(quote);
+        renderInsuranceItems(insuranceItems);
+    }
+    
+    updateInsuranceTotals();
+}
+
+// Genera gli items assicurativi dal preventivo
+function generateInsuranceItemsFromQuote(quote) {
+    const items = [];
+    
+    if (!quote.equipment) return items;
+    
+    quote.equipment.forEach((eq, index) => {
+        // Salta i servizi
+        if (eq.isService) return;
+        
+        // Per attrezzature custom
+        if (eq.isCustom) {
+            items.push({
+                id: 'item-' + index,
+                categoria: eq.category || 'CUSTOM',
+                attrezzatura: eq.equipment || '',
+                quantita: eq.quantity || 1,
+                seriale: '',
+                valore_unitario: 0,
+                incluso: true,
+                isCustom: true
+            });
+        } else {
+            // Per attrezzature da database
+            let valoreDefault = 0;
+            let serialeDefault = '';
+            
+            if (equipmentDatabase[eq.category] && equipmentDatabase[eq.category][eq.equipment]) {
+                const dbItem = equipmentDatabase[eq.category][eq.equipment];
+                valoreDefault = dbItem.insurance || 0;
+                serialeDefault = dbItem.serial || '';
+            }
+            
+            items.push({
+                id: 'item-' + index,
+                categoria: eq.category || '',
+                attrezzatura: eq.equipment || '',
+                quantita: eq.quantity || 1,
+                seriale: serialeDefault,
+                valore_unitario: valoreDefault,
+                incluso: true,
+                isCustom: false
+            });
+        }
+    });
+    
+    return items;
+}
+
+// Renderizza gli items nella tabella
+function renderInsuranceItems(items) {
+    const tbody = document.getElementById('insurance-items');
+    tbody.innerHTML = '';
+    
+    items.forEach((item, index) => {
+        const row = document.createElement('tr');
+        row.className = item.isCustom ? 'custom-insurance-row' : 'insurance-row';
+        row.style.background = item.isCustom ? '#fffbf0' : '';
+        
+        row.innerHTML = `
+            <td>
+                <input type="checkbox" id="insurance-check-${index}" 
+                    ${item.incluso ? 'checked' : ''} 
+                    onchange="updateInsuranceTotals()">
+            </td>
+            <td>${item.categoria}</td>
+            <td>${item.attrezzatura}</td>
+            <td style="text-align: center;">${item.quantita}</td>
+            <td>
+                <input type="text" class="form-input" 
+                    id="insurance-serial-${index}" 
+                    value="${item.seriale || ''}" 
+                    placeholder="${item.isCustom ? 'Inserisci seriale' : 'N/A'}"
+                    style="width: 100%; padding: 4px;">
+            </td>
+            <td>
+                <input type="number" class="form-input" 
+                    id="insurance-value-${index}" 
+                    value="${item.valore_unitario || 0}" 
+                    min="0" step="100"
+                    onchange="updateInsuranceTotals()"
+                    style="width: 100%; padding: 4px; text-align: right; ${item.isCustom ? 'background: #fff3cd;' : ''}">
+            </td>
+            <td style="text-align: right; font-weight: bold;" id="insurance-total-${index}">
+                € ${((item.valore_unitario || 0) * item.quantita).toLocaleString('it-IT')}
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Salva i dati correnti in memoria
+    currentInsuranceData = items;
+}
+
+// Aggiorna i totali
+function updateInsuranceTotals() {
+    let totale = 0;
+    
+    if (currentInsuranceData) {
+        currentInsuranceData.forEach((item, index) => {
+            const checkbox = document.getElementById('insurance-check-' + index);
+            const valueInput = document.getElementById('insurance-value-' + index);
+            
+            if (checkbox && checkbox.checked && valueInput) {
+                const valore = parseFloat(valueInput.value) || 0;
+                const subtotale = valore * item.quantita;
+                totale += subtotale;
+                
+                // Aggiorna il totale della riga
+                const totalCell = document.getElementById('insurance-total-' + index);
+                if (totalCell) {
+                    totalCell.textContent = '€ ' + subtotale.toLocaleString('it-IT');
+                }
+            }
+        });
+    }
+    
+    document.getElementById('insurance-total').textContent = 'Totale: € ' + totale.toLocaleString('it-IT');
+}
+
+// Salva i dati assicurativi
+async function saveInsuranceData() {
+    const quoteId = document.getElementById('insurance-quote-selector').value;
+    if (!quoteId) {
+        showNotification('❌ Nessun preventivo selezionato!', 'error');
+        return;
+    }
+    
+    // Raccogli i dati aggiornati
+    const insuranceData = {
+        preventivo_id: quoteId,
+        preventivo_nome: document.getElementById('insurance-progetto').value,
+        cliente: document.getElementById('insurance-cliente').value,
+        data_valutazione: document.getElementById('insurance-data').value,
+        items: [],
+        totale: 0
+    };
+    
+    let totale = 0;
+    currentInsuranceData.forEach((item, index) => {
+        const checkbox = document.getElementById('insurance-check-' + index);
+        const serialInput = document.getElementById('insurance-serial-' + index);
+        const valueInput = document.getElementById('insurance-value-' + index);
+        
+        const updatedItem = {
+            ...item,
+            incluso: checkbox ? checkbox.checked : false,
+            seriale: serialInput ? serialInput.value : '',
+            valore_unitario: valueInput ? parseFloat(valueInput.value) || 0 : 0
+        };
+        
+        if (updatedItem.incluso) {
+            totale += updatedItem.valore_unitario * updatedItem.quantita;
+        }
+        
+        insuranceData.items.push(updatedItem);
+    });
+    
+    insuranceData.totale = totale;
+    
+    // Validazione
+    if (!validateInsuranceData(insuranceData)) {
+        showNotification('❌ Dati non validi!', 'error');
+        return;
+    }
+    
+    // Salva in localStorage
+    localStorage.setItem('insurance_' + quoteId, JSON.stringify(insuranceData));
+    insuranceDataStore[quoteId] = insuranceData;
+    
+    // Salva su GitHub
+    try {
+        await saveInsuranceToGitHub(insuranceData);
+        showNotification('✅ Valori assicurativi salvati!', 'success');
+    } catch (error) {
+        showNotification('⚠️ Salvato solo localmente', 'warning');
+        console.error('Errore salvataggio GitHub:', error);
+    }
+}
+
+// Validazione dati assicurativi
+function validateInsuranceData(data) {
+    if (!data || !data.preventivo_id || !data.items) {
+        return false;
+    }
+    
+    try {
+        // Test che sia serializzabile
+        const test = JSON.stringify(data);
+        JSON.parse(test);
+        return true;
+    } catch (e) {
+        console.error('Validazione fallita:', e);
+        return false;
+    }
+}
+
+// Salva su GitHub
+async function saveInsuranceToGitHub(insuranceData) {
+    const token = getGitHubToken();
+    if (!token) {
+        throw new Error('Token GitHub mancante');
+    }
+    
+    // Crea path con struttura anno/mese
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const fileName = `assicurazioni/${year}/${month}/assicurazione_${insuranceData.preventivo_id}.json`;
+    
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(insuranceData, null, 2))));
+    
+    // Controlla se il file esiste già
+    let sha = null;
+    try {
+        const checkResponse = await fetch(
+            `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`,
+            {
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            }
+        );
+        
+        if (checkResponse.ok) {
+            const fileData = await checkResponse.json();
+            sha = fileData.sha;
+        }
+    } catch (e) {
+        console.log('File non esiste, verrà creato');
+    }
+    
+    // Salva o aggiorna il file
+    const response = await fetch(
+        `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`,
+        {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: `${sha ? 'Aggiorna' : 'Crea'} valori assicurativi per: ${insuranceData.preventivo_nome}`,
+                content: content,
+                sha: sha
+            })
+        }
+    );
+    
+    if (!response.ok) {
+        throw new Error('Errore salvataggio GitHub: ' + response.status);
+    }
+    
+    return true;
+}
+
+// Carica dati salvati
+function loadSavedInsuranceData(quoteId) {
+    // Prima controlla localStorage
+    const localData = localStorage.getItem('insurance_' + quoteId);
+    if (localData) {
+        try {
+            return JSON.parse(localData);
+        } catch (e) {
+            console.error('Errore parsing dati locali:', e);
+        }
+    }
+    
+    // Poi controlla il datastore in memoria
+    if (insuranceDataStore[quoteId]) {
+        return insuranceDataStore[quoteId];
+    }
+    
+    return null;
+}
+
+// Sincronizza con il preventivo
+function syncInsuranceWithQuote() {
+    const quoteId = document.getElementById('insurance-quote-selector').value;
+    if (!quoteId) {
+        showNotification('❌ Nessun preventivo selezionato!', 'error');
+        return;
+    }
+    
+    if (confirm('⚠️ Questo aggiornerà i valori con quelli del preventivo. I valori modificati manualmente potrebbero essere persi. Continuare?')) {
+        loadInsuranceForQuote();
+        showNotification('🔄 Sincronizzato con il preventivo', 'success');
+    }
+}
+
+// Reset valori
+function resetInsuranceValues() {
+    if (!confirm('⚠️ Questo resetterà tutti i valori ai default del database. Continuare?')) {
+        return;
+    }
+    
+    const quoteId = document.getElementById('insurance-quote-selector').value;
+    if (!quoteId) return;
+    
+    // Rimuovi dati salvati
+    localStorage.removeItem('insurance_' + quoteId);
+    delete insuranceDataStore[quoteId];
+    
+    // Ricarica
+    loadInsuranceForQuote();
+    showNotification('🔄 Valori resettati ai default', 'info');
+}
+
+// Genera PDF dalla tab assicurazione
+function generateInsuranceFromTab() {
+    const quoteId = document.getElementById('insurance-quote-selector').value;
+    if (!quoteId) {
+        showNotification('❌ Nessun preventivo selezionato!', 'error');
+        return;
+    }
+    
+    // Salva prima di generare
+    saveInsuranceData().then(() => {
+        // Poi genera il PDF usando i dati salvati
+        generateInsurancePDFWithCustomValues(quoteId);
+    });
+}
+
+// Genera PDF con valori custom
+function generateInsurancePDFWithCustomValues(quoteId) {
+    const insuranceData = loadSavedInsuranceData(quoteId);
+    if (!insuranceData) {
+        showNotification('❌ Nessun dato assicurativo trovato!', 'error');
+        return;
+    }
+    
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const docNumber = 'ASS-' + Date.now().toString().slice(-6);
+        
+        // HEADER (uguale a prima)
+        try {
+            doc.addImage('https://i.imgur.com/ABMgyI8.png', 'PNG', 15, 10, 35, 35);
+        } catch (e) {
+            doc.setFillColor(44, 90, 160);
+            doc.circle(32.5, 27.5, 17, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18);
+            doc.text('HP', 32.5, 32, { align: 'center' });
+        }
+        
+        // INTESTAZIONE AZIENDA
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 90, 160);
+        doc.text('HUBRIS PICTURES S.R.L.', 55, 22);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.text('P.IVA: 09542051215', 55, 29);
+        doc.text('PEC: hubrispictures@pec.it | Tel: +39 081 18893796 / +39 348 6901218', 55, 34);
+        doc.text('Indirizzo: Piazza Vanvitelli, 5, 80127 Napoli NA', 55, 39);
+        doc.text('Email: info@hubrispictures.com', 55, 44);
+        
+        // NUMERO DOCUMENTO
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 90, 160);
+        doc.text('VALORI', 195, 10, { align: 'right' });
+        doc.text('ASSICURATIVI', 195, 18, { align: 'right' });
+        doc.text('N. ' + docNumber, 195, 26, { align: 'right' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Data: ' + insuranceData.data_valutazione, 195, 33, { align: 'right' });
+        
+        // LINEA SEPARATRICE
+        doc.setDrawColor(44, 90, 160);
+        doc.setLineWidth(1.5);
+        doc.line(15, 50, 195, 50);
+        
+        // INFO CLIENTE
+        doc.setFillColor(248, 250, 255);
+        doc.rect(15, 55, 85, 35, 'F');
+        doc.setDrawColor(44, 90, 160);
+        doc.setLineWidth(0.3);
+        doc.rect(15, 55, 85, 35);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 90, 160);
+        doc.text('CLIENTE:', 18, 62);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9);
+        doc.text(insuranceData.cliente, 18, 68);
+        doc.text('Progetto: ' + insuranceData.preventivo_nome, 18, 74);
+        
+        // INFO VALUTAZIONE
+        doc.setFillColor(248, 250, 255);
+        doc.rect(110, 55, 85, 35, 'F');
+        doc.setDrawColor(44, 90, 160);
+        doc.setLineWidth(0.3);
+        doc.rect(110, 55, 85, 35);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 90, 160);
+        doc.text('VALUTAZIONE:', 113, 62);
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.text('Data: ' + insuranceData.data_valutazione, 113, 68);
+        doc.text('Totale: € ' + insuranceData.totale.toLocaleString('it-IT'), 113, 74);
+        
+        // TABELLA ATTREZZATURE
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(44, 90, 160);
+        doc.text('ATTREZZATURE DA ASSICURARE', 105, 105, { align: 'center' });
+        
+        // Prepara dati tabella
+        const tableData = [];
+        insuranceData.items.forEach(item => {
+            if (item.incluso) {
+                const totale = item.valore_unitario * item.quantita;
+                tableData.push([
+                    item.categoria,
+                    item.attrezzatura,
+                    item.quantita.toString(),
+                    item.seriale || 'N/A',
+                    '€ ' + item.valore_unitario.toLocaleString('it-IT'),
+                    '€ ' + totale.toLocaleString('it-IT')
+                ]);
+            }
+        });
+        
+        if (tableData.length > 0) {
+            doc.autoTable({
+                head: [['Categoria', 'Attrezzatura', 'Qtà', 'Seriale', 'Valore Unit.', 'Valore Tot.']],
+                body: tableData,
+                startY: 110,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [44, 90, 160],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 11
+                },
+                bodyStyles: {
+                    fontSize: 10,
+                    cellPadding: 3
+                },
+                columnStyles: {
+                    0: { cellWidth: 30 },
+                    1: { cellWidth: 55 },
+                    2: { cellWidth: 15, halign: 'center' },
+                    3: { cellWidth: 25, halign: 'center' },
+                    4: { cellWidth: 25, halign: 'right' },
+                    5: { cellWidth: 30, halign: 'right', fontStyle: 'bold' }
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 255]
+                }
+            });
+            
+            // TOTALE FINALE
+            const finalY = doc.lastAutoTable.finalY + 15;
+            
+            doc.setFillColor(248, 250, 255);
+            doc.rect(115, finalY, 80, 25, 'F');
+            doc.setDrawColor(44, 90, 160);
+            doc.setLineWidth(0.5);
+            doc.rect(115, finalY, 80, 25);
+            
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(44, 90, 160);
+            doc.text('VALORE TOTALE DA ASSICURARE:', 118, finalY + 10);
+            doc.text('€ ' + insuranceData.totale.toLocaleString('it-IT'), 190, finalY + 18, { align: 'right' });
+        }
+        
+        // SALVA PDF
+        const fileName = insuranceData.preventivo_nome.replace(/[^a-z0-9]/gi, '_') + '_Assicurazione_' + docNumber + '.pdf';
+        doc.save(fileName);
+        
+        showNotification('✅ PDF assicurazione generato!', 'success');
+        
+    } catch (error) {
+        console.error('Errore generazione PDF:', error);
+        showNotification('❌ Errore nella generazione del PDF', 'error');
+    }
+}
+
+// Carica dati assicurativi da GitHub all'avvio
+async function loadInsuranceDataFromGitHub() {
+    try {
+        const token = getGitHubToken();
+        if (!token) {
+            console.log('⚠️ Token GitHub mancante per assicurazioni');
+            return;
+        }
+        
+        // Funzione ricorsiva per leggere cartelle
+        async function readDirectory(path = 'assicurazioni') {
+            try {
+                const response = await fetch(
+                    `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${path}`,
+                    {
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    }
+                );
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.log('📁 Cartella assicurazioni non trovata');
+                        return [];
+                    }
+                    return [];
+                }
+                
+                const items = await response.json();
+                const jsonFiles = [];
+                
+                for (const item of items) {
+                    if (item.type === 'dir') {
+                        const subFiles = await readDirectory(item.path);
+                        jsonFiles.push(...subFiles);
+                    } else if (item.name.startsWith('assicurazione_') && item.name.endsWith('.json')) {
+                        jsonFiles.push(item);
+                    }
+                }
+                
+                return jsonFiles;
+            } catch (error) {
+                console.error('Errore lettura directory assicurazioni:', error);
+                return [];
+            }
+        }
+        
+        const files = await readDirectory();
+        
+        for (const file of files) {
+            try {
+                const fileResponse = await fetch(file.download_url);
+                const fileText = await fileResponse.text();
+                const data = JSON.parse(fileText);
+                
+                if (validateInsuranceData(data)) {
+                    insuranceDataStore[data.preventivo_id] = data;
+                    // Salva anche in localStorage come backup
+                    localStorage.setItem('insurance_' + data.preventivo_id, JSON.stringify(data));
+                    console.log('✅ Caricati valori assicurativi per:', data.preventivo_nome);
+                }
+            } catch (e) {
+                console.warn('⚠️ File assicurazione corrotto:', file.name);
+            }
+        }
+        
+        console.log('📂 Caricati', Object.keys(insuranceDataStore).length, 'documenti assicurativi');
+        
+    } catch (error) {
+        console.error('❌ Errore caricamento assicurazioni da GitHub:', error);
+    }
+}
+
+// Inizializza la tab assicurazione quando si apre
+document.addEventListener('DOMContentLoaded', function() {
+    // Carica dati assicurativi dopo i preventivi
+    setTimeout(() => {
+        loadInsuranceDataFromGitHub();
+    }, 3000);
+});
+
+// Aggiorna il selector quando si apre la tab
+window.showTabOriginal = window.showTab;
+window.showTab = function(tabName) {
+    window.showTabOriginal(tabName);
+    
+    if (tabName === 'insurance') {
+        populateInsuranceQuoteSelector();
+    }
+};
 }
 
