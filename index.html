@@ -45,6 +45,7 @@
         <button class="tab active" onclick="showTab('database')">🗄️ Database</button>
         <button class="tab" onclick="showTab('quotes')">📋 Nuovo Preventivo</button>
         <button class="tab" onclick="showTab('saved')">💾 Preventivi Salvati</button>
+        <button class="tab" onclick="showTab('insurance')">🛡️ Valori Assicurativi</button>
         <button class="tab" onclick="showTab('analytics')">📊 Analytics</button>
         <button class="btn btn-danger" onclick="logout()" style="padding: 6px 12px; font-size: 12px;">🔒 Logout</button>
     </div>
@@ -281,6 +282,73 @@
             </div>
         </div>
     </div>
+    <!-- INSURANCE VALUES TAB -->
+<div id="insurance" class="tab-content">
+    <div class="section-header">
+        <h2 class="section-title">Gestione Valori Assicurativi</h2>
+        <div>
+            <select class="form-input" id="insurance-quote-selector" onchange="loadInsuranceForQuote()" style="width: 300px;">
+                <option value="">Seleziona un preventivo...</option>
+            </select>
+            <button class="btn btn-warning" onclick="syncInsuranceWithQuote()">🔄 Sincronizza</button>
+        </div>
+    </div>
+    
+    <div id="insurance-info" style="display: none;">
+        <div class="form-grid" style="margin-bottom: 20px;">
+            <div class="form-group">
+                <label class="form-label">Cliente</label>
+                <input type="text" class="form-input" id="insurance-cliente" readonly style="background: #f5f5f5;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Progetto</label>
+                <input type="text" class="form-input" id="insurance-progetto" readonly style="background: #f5f5f5;">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Data Valutazione</label>
+                <input type="date" class="form-input" id="insurance-data" value="">
+            </div>
+        </div>
+        
+        <div class="equipment-section">
+            <div class="equipment-header">
+                <h3>Attrezzature da Assicurare</h3>
+                <div id="insurance-total" style="font-size: 18px; font-weight: bold; color: #2c5aa0;">
+                    Totale: € 0
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">☑</th>
+                            <th style="width: 150px;">Categoria</th>
+                            <th style="width: 250px;">Attrezzatura</th>
+                            <th style="width: 60px;">Qtà</th>
+                            <th style="width: 120px;">Seriale</th>
+                            <th style="width: 120px;">Valore Unit.</th>
+                            <th style="width: 120px;">Valore Tot.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="insurance-items">
+                        <!-- Popolato dinamicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: center; margin: 30px 0;">
+            <button class="btn btn-success" onclick="saveInsuranceData()">💾 Salva Valori</button>
+            <button class="btn btn-info" onclick="generateInsuranceFromTab()">📄 Genera PDF</button>
+            <button class="btn btn-danger" onclick="resetInsuranceValues()">🔄 Reset Valori</button>
+        </div>
+    </div>
+    
+    <div id="insurance-empty" style="text-align: center; padding: 60px; color: #666;">
+        <h3>Seleziona un preventivo per gestire i valori assicurativi</h3>
+        <p>I valori di default verranno presi dal database, ma potrai modificarli</p>
+    </div>
+</div>
 
     <!-- ANALYTICS TAB -->
     <div id="analytics" class="tab-content">
