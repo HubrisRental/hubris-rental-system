@@ -720,6 +720,73 @@ function addServiceRow() {
     tbody.appendChild(row);
     setupDragAndDrop(row);
 }
+// NUOVA FUNZIONE PER ATTREZZATURE CUSTOM
+function addCustomEquipmentRow() {
+    rowCounter++;
+    const tbody = document.getElementById('equipmentRows');
+    const row = document.createElement('tr');
+    row.className = 'equipment-row custom-row';
+    row.id = 'row-' + rowCounter;
+    row.style.background = '#fffbf0'; // Colore leggermente diverso per distinguerle
+    
+    row.innerHTML = `
+        <td style="width: 40px; padding: 12px 8px;">
+            <span class="drag-handle">☰</span>
+        </td>
+        <td style="padding: 12px 8px;">
+            <input type="text" class="form-input" placeholder="Categoria custom..." 
+                   id="custom-category-${rowCounter}" 
+                   value="CUSTOM"
+                   style="width: 100%; background: #fff3cd; border: 2px solid #ffc107;">
+        </td>
+        <td style="padding: 12px 8px;">
+            <input type="text" class="form-input" placeholder="Nome attrezzatura..." 
+                   id="custom-equipment-${rowCounter}" 
+                   style="width: 100%; margin-bottom: 8px;">
+            <textarea class="form-input" placeholder="Kit/Note..." 
+                      id="custom-kit-${rowCounter}" 
+                      style="width: 100%; height: 50px; resize: vertical;"></textarea>
+        </td>
+        <td style="padding: 12px 8px; text-align: center;">
+            <input type="number" class="form-input" value="1" min="1" 
+                   onchange="updateCustomRowTotal(${rowCounter})" 
+                   id="custom-qty-${rowCounter}" 
+                   style="width: 80px; height: 40px; text-align: center; font-size: 16px; font-weight: bold;">
+        </td>
+        <td style="padding: 12px 8px;">
+            <input type="number" class="form-input" placeholder="0.00" min="0" step="0.01" 
+                   onchange="updateCustomRowTotal(${rowCounter})" 
+                   id="custom-price-${rowCounter}" 
+                   style="width: 100%; height: 42px; text-align: right; font-size: 16px; font-weight: bold;">
+        </td>
+        <td style="text-align: right; font-weight: bold; color: #ff9800; padding: 12px 8px;" 
+            id="custom-total-${rowCounter}">€ 0.00</td>
+        <td style="padding: 12px 8px;">
+            <button class="btn btn-danger" onclick="removeRow(${rowCounter})" 
+                    style="padding: 6px 12px; font-size: 12px;">✕</button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    setupDragAndDrop(row);
+    
+    // Focus sul campo nome attrezzatura
+    setTimeout(() => {
+        document.getElementById('custom-equipment-' + rowCounter).focus();
+    }, 100);
+    
+    showNotification('📦 Riga custom aggiunta - Compila tutti i campi manualmente', 'info');
+}
+
+// FUNZIONE PER AGGIORNARE TOTALE RIGA CUSTOM
+function updateCustomRowTotal(rowId) {
+    const quantity = parseFloat(document.getElementById('custom-qty-' + rowId).value) || 0;
+    const price = parseFloat(document.getElementById('custom-price-' + rowId).value) || 0;
+    const total = quantity * price;
+    
+    document.getElementById('custom-total-' + rowId).textContent = '€ ' + total.toFixed(2);
+    updateTotals();
+}
 
 // UI RENDERING
 function renderDatabase(data) {
@@ -1544,46 +1611,67 @@ function saveQuote() {
     }
     
     // Salva attrezzature e servizi
-    document.querySelectorAll('[id^="row-"]').forEach(row => {
-        const rowId = row.id.split('-')[1];
+document.querySelectorAll('[id^="row-"]').forEach(row => {
+    const rowId = row.id.split('-')[1];
+    
+    if (row.classList.contains('service-row')) {
+        // SERVIZI - codice esistente
         const quantity = document.getElementById('qty-' + rowId) ? parseInt(document.getElementById('qty-' + rowId).value) || 1 : 1;
+        const serviceName = document.getElementById('service-name-' + rowId) ? document.getElementById('service-name-' + rowId).value : '';
+        const serviceNotes = document.getElementById('service-notes-' + rowId) ? document.getElementById('service-notes-' + rowId).value : '';
+        const servicePrice = document.getElementById('service-price-' + rowId) ? parseFloat(document.getElementById('service-price-' + rowId).value) || 0 : 0;
         
-        if (row.classList.contains('service-row')) {
-            const serviceName = document.getElementById('service-name-' + rowId) ? document.getElementById('service-name-' + rowId).value : '';
-            const serviceNotes = document.getElementById('service-notes-' + rowId) ? document.getElementById('service-notes-' + rowId).value : '';
-            const servicePrice = document.getElementById('service-price-' + rowId) ? parseFloat(document.getElementById('service-price-' + rowId).value) || 0 : 0;
-            
-            if (serviceName) {
-                quote.equipment.push({
-                    category: 'SERVIZIO',
-                    equipment: serviceName,
-                    quantity: quantity,
-                    notes: serviceNotes,
-                    price: servicePrice,
-                    isService: true
-                });
-            }
-        } else {
-            const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : 
-                            (document.getElementById('search-cat-' + rowId) ? document.getElementById('search-cat-' + rowId).value : '');
-            const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : 
-                             (document.getElementById('search-eq-' + rowId) ? document.getElementById('search-eq-' + rowId).value : '');
-            const kitInfo = document.getElementById('kit-' + rowId) ? document.getElementById('kit-' + rowId).value : '';
-            const priceText = document.getElementById('price-' + rowId) ? document.getElementById('price-' + rowId).value : '€ 0.00';
-            const price = parseFloat(priceText.replace('€ ', '')) || 0;
-            
-            if (category && equipment) {
-                quote.equipment.push({
-                    category: category,
-                    equipment: equipment,
-                    quantity: quantity,
-                    kit: kitInfo,
-                    price: price,
-                    isService: false
-                });
-            }
+        if (serviceName) {
+            quote.equipment.push({
+                category: 'SERVIZIO',
+                equipment: serviceName,
+                quantity: quantity,
+                notes: serviceNotes,
+                price: servicePrice,
+                isService: true
+            });
         }
-    });
+    } else if (row.classList.contains('custom-row')) {
+        // NUOVO - ATTREZZATURE CUSTOM
+        const customCategory = document.getElementById('custom-category-' + rowId)?.value || 'CUSTOM';
+        const customEquipment = document.getElementById('custom-equipment-' + rowId)?.value || '';
+        const customKit = document.getElementById('custom-kit-' + rowId)?.value || '';
+        const customQuantity = parseInt(document.getElementById('custom-qty-' + rowId)?.value || 1);
+        const customPrice = parseFloat(document.getElementById('custom-price-' + rowId)?.value || 0);
+        
+        if (customEquipment) {
+            quote.equipment.push({
+                category: customCategory,
+                equipment: customEquipment,
+                quantity: customQuantity,
+                kit: customKit,
+                price: customPrice,
+                isCustom: true  // Flag per identificare le custom
+            });
+        }
+    } else {
+        // ATTREZZATURE NORMALI - codice esistente
+        const quantity = document.getElementById('qty-' + rowId) ? parseInt(document.getElementById('qty-' + rowId).value) || 1 : 1;
+        const category = document.getElementById('category-' + rowId) ? document.getElementById('category-' + rowId).value : 
+                        (document.getElementById('search-cat-' + rowId) ? document.getElementById('search-cat-' + rowId).value : '');
+        const equipment = document.getElementById('equipment-' + rowId) ? document.getElementById('equipment-' + rowId).value : 
+                         (document.getElementById('search-eq-' + rowId) ? document.getElementById('search-eq-' + rowId).value : '');
+        const kitInfo = document.getElementById('kit-' + rowId) ? document.getElementById('kit-' + rowId).value : '';
+        const priceText = document.getElementById('price-' + rowId) ? document.getElementById('price-' + rowId).value : '€ 0.00';
+        const price = parseFloat(priceText.replace('€ ', '')) || 0;
+        
+        if (category && equipment) {
+            quote.equipment.push({
+                category: category,
+                equipment: equipment,
+                quantity: quantity,
+                kit: kitInfo,
+                price: price,
+                isService: false
+            });
+        }
+    }
+});
     
     // SALVATAGGIO DOPPIO: localStorage + Google Sheets
     
@@ -1719,6 +1807,17 @@ function loadQuoteById(quoteId) {
                         document.getElementById('qty-' + rowCounter).value = item.quantity || 1;
                         updateRowTotal(rowCounter);
                     }, 100);
+} else if (item.isCustom) {
+    // CARICA ATTREZZATURE CUSTOM
+    addCustomEquipmentRow();
+    setTimeout(() => {
+        document.getElementById('custom-category-' + rowCounter).value = item.category || 'CUSTOM';
+        document.getElementById('custom-equipment-' + rowCounter).value = item.equipment || '';
+        document.getElementById('custom-kit-' + rowCounter).value = item.kit || '';
+        document.getElementById('custom-price-' + rowCounter).value = item.price || 0;
+        document.getElementById('custom-qty-' + rowCounter).value = item.quantity || 1;
+        updateCustomRowTotal(rowCounter);
+    }, 100);
                 } else {
                     addEquipmentRow();
                     setTimeout(() => {
