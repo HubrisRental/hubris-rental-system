@@ -955,34 +955,48 @@ async function loadQuotesFromGitHub() {
         const preventivi = [];
         let erroriCaricamento = 0;
         
-        // Carica ogni file con gestione errori migliorata
-        for (const file of files) {
-            try {
-                console.log('📄 Caricamento file:', file.name);
-                const fileResponse = await fetch(file.download_url);
-                const fileText = await fileResponse.text();
-                
-                // Prova a parsare il JSON
-                try {
-                    const quote = JSON.parse(fileText);
-                    
-                    // Valida che abbia i campi minimi necessari
-                    if (quote && quote.id) {
-                        preventivi.push(quote);
-                        console.log('✅ Caricato:', quote.name || 'Senza nome');
-                    } else {
-                        console.warn('⚠️ Preventivo senza ID:', file.name);
-                    }
-                } catch (parseError) {
-                    console.error('❌ Errore parsing JSON per', file.name, ':', parseError.message);
-                    console.log('Contenuto problematico:', fileText.substring(0, 200));
-                    erroriCaricamento++;
-                }
-            } catch (e) {
-                console.error('❌ Errore caricamento file:', file.name, e);
-                erroriCaricamento++;
-            }
+// Carica ogni file con gestione errori migliorata
+for (const file of files) {
+    try {
+        console.log('📄 Caricamento file:', file.name);
+        const fileResponse = await fetch(file.download_url);
+        
+        if (!fileResponse.ok) {
+            console.warn('⚠️ Impossibile scaricare:', file.name);
+            continue;
         }
+        
+        const fileText = await fileResponse.text();
+        
+        // Prova a parsare il JSON
+        try {
+            const quote = JSON.parse(fileText);
+            
+            // Valida che abbia i campi minimi necessari
+            if (quote && quote.id) {
+                // Pulisci eventuali caratteri problematici
+                if (quote.name) quote.name = quote.name.replace(/'/g, "'");
+                if (quote.cliente) quote.cliente = quote.cliente.replace(/'/g, "'");
+                
+                preventivi.push(quote);
+                console.log('✅ Caricato:', quote.name || 'Senza nome');
+            } else {
+                console.warn('⚠️ Preventivo senza ID:', file.name);
+            }
+        } catch (parseError) {
+            console.error('❌ Errore parsing JSON per', file.name, ':', parseError.message);
+            console.log('Primi 200 caratteri:', fileText.substring(0, 200));
+            erroriCaricamento++;
+            
+            // NON bloccare il caricamento degli altri
+            continue;
+        }
+    } catch (e) {
+        console.error('❌ Errore caricamento file:', file.name, e);
+        erroriCaricamento++;
+        continue; // Continua con il prossimo file
+    }
+}
         
         if (erroriCaricamento > 0) {
             showNotification(`⚠️ ${erroriCaricamento} preventivi con errori non caricati`, 'warning');
