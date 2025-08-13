@@ -3884,6 +3884,7 @@ function duplicateQuote() {
 }
 
 // Funzione per il bottone Reset (già esiste ma verificala)
+// Funzione per il bottone Reset
 function resetQuote() {
     if (confirm('Sei sicuro di voler cancellare tutto il preventivo?')) {
         document.getElementById('equipmentRows').innerHTML = '';
@@ -3912,25 +3913,23 @@ function resetQuote() {
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
     }
-} 
-    
-    // ========================================
+} // CHIUSURA CORRETTA DI resetQuote
+
+// ========================================
 // GESTIONE VALORI ASSICURATIVI
 // ========================================
 
 let currentInsuranceData = null;
-let insuranceDataStore = {}; // Store locale per i dati assicurativi
+let insuranceDataStore = {};
 
 // Funzione per aprire la scheda assicurazione da un preventivo
 function openInsuranceForQuote(quoteId) {
-    // Carica il preventivo
     const quote = savedQuotes.find(q => q.id === quoteId);
     if (!quote) {
         showNotification('❌ Preventivo non trovato!', 'error');
         return;
     }
     
-    // Passa alla tab assicurazione
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
@@ -3940,7 +3939,6 @@ function openInsuranceForQuote(quoteId) {
     document.getElementById('insurance').classList.add('active');
     document.querySelector('[onclick="showTab(\'insurance\')"]').classList.add('active');
     
-    // Popola il selector e carica i dati
     populateInsuranceQuoteSelector();
     document.getElementById('insurance-quote-selector').value = quoteId;
     loadInsuranceForQuote();
@@ -3951,6 +3949,8 @@ function openInsuranceForQuote(quoteId) {
 // Popola il dropdown con i preventivi salvati
 function populateInsuranceQuoteSelector() {
     const selector = document.getElementById('insurance-quote-selector');
+    if (!selector) return;
+    
     selector.innerHTML = '<option value="">Seleziona un preventivo...</option>';
     
     savedQuotes.forEach(quote => {
@@ -3977,24 +3977,19 @@ function loadInsuranceForQuote() {
         return;
     }
     
-    // Mostra la sezione info
     document.getElementById('insurance-info').style.display = 'block';
     document.getElementById('insurance-empty').style.display = 'none';
     
-    // Popola i dati base
     document.getElementById('insurance-cliente').value = quote.cliente || '';
     document.getElementById('insurance-progetto').value = quote.name || '';
     document.getElementById('insurance-data').value = new Date().toISOString().split('T')[0];
     
-    // Controlla se esistono dati salvati
     const savedInsuranceData = loadSavedInsuranceData(quoteId);
     
     if (savedInsuranceData) {
-        // Usa i dati salvati
         renderInsuranceItems(savedInsuranceData.items);
         document.getElementById('insurance-data').value = savedInsuranceData.data_valutazione || new Date().toISOString().split('T')[0];
     } else {
-        // Genera i dati dal preventivo
         const insuranceItems = generateInsuranceItemsFromQuote(quote);
         renderInsuranceItems(insuranceItems);
     }
@@ -4009,10 +4004,8 @@ function generateInsuranceItemsFromQuote(quote) {
     if (!quote.equipment) return items;
     
     quote.equipment.forEach((eq, index) => {
-        // Salta i servizi
         if (eq.isService) return;
         
-        // Per attrezzature custom
         if (eq.isCustom) {
             items.push({
                 id: 'item-' + index,
@@ -4025,7 +4018,6 @@ function generateInsuranceItemsFromQuote(quote) {
                 isCustom: true
             });
         } else {
-            // Per attrezzature da database
             let valoreDefault = 0;
             let serialeDefault = '';
             
@@ -4054,6 +4046,8 @@ function generateInsuranceItemsFromQuote(quote) {
 // Renderizza gli items nella tabella
 function renderInsuranceItems(items) {
     const tbody = document.getElementById('insurance-items');
+    if (!tbody) return;
+    
     tbody.innerHTML = '';
     
     items.forEach((item, index) => {
@@ -4093,7 +4087,6 @@ function renderInsuranceItems(items) {
         tbody.appendChild(row);
     });
     
-    // Salva i dati correnti in memoria
     currentInsuranceData = items;
 }
 
@@ -4111,7 +4104,6 @@ function updateInsuranceTotals() {
                 const subtotale = valore * item.quantita;
                 totale += subtotale;
                 
-                // Aggiorna il totale della riga
                 const totalCell = document.getElementById('insurance-total-' + index);
                 if (totalCell) {
                     totalCell.textContent = '€ ' + subtotale.toLocaleString('it-IT');
@@ -4120,7 +4112,10 @@ function updateInsuranceTotals() {
         });
     }
     
-    document.getElementById('insurance-total').textContent = 'Totale: € ' + totale.toLocaleString('it-IT');
+    const totalElement = document.getElementById('insurance-total');
+    if (totalElement) {
+        totalElement.textContent = 'Totale: € ' + totale.toLocaleString('it-IT');
+    }
 }
 
 // Salva i dati assicurativi
@@ -4131,7 +4126,6 @@ async function saveInsuranceData() {
         return;
     }
     
-    // Raccogli i dati aggiornati
     const insuranceData = {
         preventivo_id: quoteId,
         preventivo_nome: document.getElementById('insurance-progetto').value,
@@ -4163,17 +4157,14 @@ async function saveInsuranceData() {
     
     insuranceData.totale = totale;
     
-    // Validazione
     if (!validateInsuranceData(insuranceData)) {
         showNotification('❌ Dati non validi!', 'error');
         return;
     }
     
-    // Salva in localStorage
     localStorage.setItem('insurance_' + quoteId, JSON.stringify(insuranceData));
     insuranceDataStore[quoteId] = insuranceData;
     
-    // Salva su GitHub
     try {
         await saveInsuranceToGitHub(insuranceData);
         showNotification('✅ Valori assicurativi salvati!', 'success');
@@ -4190,7 +4181,6 @@ function validateInsuranceData(data) {
     }
     
     try {
-        // Test che sia serializzabile
         const test = JSON.stringify(data);
         JSON.parse(test);
         return true;
@@ -4207,7 +4197,6 @@ async function saveInsuranceToGitHub(insuranceData) {
         throw new Error('Token GitHub mancante');
     }
     
-    // Crea path con struttura anno/mese
     const date = new Date();
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -4215,7 +4204,6 @@ async function saveInsuranceToGitHub(insuranceData) {
     
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(insuranceData, null, 2))));
     
-    // Controlla se il file esiste già
     let sha = null;
     try {
         const checkResponse = await fetch(
@@ -4236,7 +4224,6 @@ async function saveInsuranceToGitHub(insuranceData) {
         console.log('File non esiste, verrà creato');
     }
     
-    // Salva o aggiorna il file
     const response = await fetch(
         `https://api.github.com/repos/${CONFIG.GITHUB_OWNER}/${CONFIG.GITHUB_REPO}/contents/${fileName}`,
         {
@@ -4263,7 +4250,6 @@ async function saveInsuranceToGitHub(insuranceData) {
 
 // Carica dati salvati
 function loadSavedInsuranceData(quoteId) {
-    // Prima controlla localStorage
     const localData = localStorage.getItem('insurance_' + quoteId);
     if (localData) {
         try {
@@ -4273,7 +4259,6 @@ function loadSavedInsuranceData(quoteId) {
         }
     }
     
-    // Poi controlla il datastore in memoria
     if (insuranceDataStore[quoteId]) {
         return insuranceDataStore[quoteId];
     }
@@ -4304,11 +4289,9 @@ function resetInsuranceValues() {
     const quoteId = document.getElementById('insurance-quote-selector').value;
     if (!quoteId) return;
     
-    // Rimuovi dati salvati
     localStorage.removeItem('insurance_' + quoteId);
     delete insuranceDataStore[quoteId];
     
-    // Ricarica
     loadInsuranceForQuote();
     showNotification('🔄 Valori resettati ai default', 'info');
 }
@@ -4321,9 +4304,7 @@ function generateInsuranceFromTab() {
         return;
     }
     
-    // Salva prima di generare
     saveInsuranceData().then(() => {
-        // Poi genera il PDF usando i dati salvati
         generateInsurancePDFWithCustomValues(quoteId);
     });
 }
@@ -4341,7 +4322,6 @@ function generateInsurancePDFWithCustomValues(quoteId) {
         const doc = new jsPDF();
         const docNumber = 'ASS-' + Date.now().toString().slice(-6);
         
-        // HEADER (uguale a prima)
         try {
             doc.addImage('https://i.imgur.com/ABMgyI8.png', 'PNG', 15, 10, 35, 35);
         } catch (e) {
@@ -4352,7 +4332,6 @@ function generateInsurancePDFWithCustomValues(quoteId) {
             doc.text('HP', 32.5, 32, { align: 'center' });
         }
         
-        // INTESTAZIONE AZIENDA
         doc.setFontSize(22);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
@@ -4366,7 +4345,6 @@ function generateInsurancePDFWithCustomValues(quoteId) {
         doc.text('Indirizzo: Piazza Vanvitelli, 5, 80127 Napoli NA', 55, 39);
         doc.text('Email: info@hubrispictures.com', 55, 44);
         
-        // NUMERO DOCUMENTO
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
@@ -4377,12 +4355,10 @@ function generateInsurancePDFWithCustomValues(quoteId) {
         doc.setFont('helvetica', 'normal');
         doc.text('Data: ' + insuranceData.data_valutazione, 195, 33, { align: 'right' });
         
-        // LINEA SEPARATRICE
         doc.setDrawColor(44, 90, 160);
         doc.setLineWidth(1.5);
         doc.line(15, 50, 195, 50);
         
-        // INFO CLIENTE
         doc.setFillColor(248, 250, 255);
         doc.rect(15, 55, 85, 35, 'F');
         doc.setDrawColor(44, 90, 160);
@@ -4400,7 +4376,6 @@ function generateInsurancePDFWithCustomValues(quoteId) {
         doc.text(insuranceData.cliente, 18, 68);
         doc.text('Progetto: ' + insuranceData.preventivo_nome, 18, 74);
         
-        // INFO VALUTAZIONE
         doc.setFillColor(248, 250, 255);
         doc.rect(110, 55, 85, 35, 'F');
         doc.setDrawColor(44, 90, 160);
@@ -4416,13 +4391,11 @@ function generateInsurancePDFWithCustomValues(quoteId) {
         doc.text('Data: ' + insuranceData.data_valutazione, 113, 68);
         doc.text('Totale: € ' + insuranceData.totale.toLocaleString('it-IT'), 113, 74);
         
-        // TABELLA ATTREZZATURE
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(44, 90, 160);
         doc.text('ATTREZZATURE DA ASSICURARE', 105, 105, { align: 'center' });
         
-        // Prepara dati tabella
         const tableData = [];
         insuranceData.items.forEach(item => {
             if (item.incluso) {
@@ -4467,7 +4440,6 @@ function generateInsurancePDFWithCustomValues(quoteId) {
                 }
             });
             
-            // TOTALE FINALE
             const finalY = doc.lastAutoTable.finalY + 15;
             
             doc.setFillColor(248, 250, 255);
@@ -4483,7 +4455,6 @@ function generateInsurancePDFWithCustomValues(quoteId) {
             doc.text('€ ' + insuranceData.totale.toLocaleString('it-IT'), 190, finalY + 18, { align: 'right' });
         }
         
-        // SALVA PDF
         const fileName = insuranceData.preventivo_nome.replace(/[^a-z0-9]/gi, '_') + '_Assicurazione_' + docNumber + '.pdf';
         doc.save(fileName);
         
@@ -4504,7 +4475,6 @@ async function loadInsuranceDataFromGitHub() {
             return;
         }
         
-        // Funzione ricorsiva per leggere cartelle
         async function readDirectory(path = 'assicurazioni') {
             try {
                 const response = await fetch(
@@ -4554,7 +4524,6 @@ async function loadInsuranceDataFromGitHub() {
                 
                 if (validateInsuranceData(data)) {
                     insuranceDataStore[data.preventivo_id] = data;
-                    // Salva anche in localStorage come backup
                     localStorage.setItem('insurance_' + data.preventivo_id, JSON.stringify(data));
                     console.log('✅ Caricati valori assicurativi per:', data.preventivo_nome);
                 }
@@ -4568,50 +4537,21 @@ async function loadInsuranceDataFromGitHub() {
     } catch (error) {
         console.error('❌ Errore caricamento assicurazioni da GitHub:', error);
     }
-}  
+}
 
-// Override della funzione showTab per gestire la tab assicurazione
-const originalShowTab = window.showTab;
-if (originalShowTab) {
-    window.showTab = function(tabName) {
-        // Chiama la funzione originale
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.getElementById(tabName).classList.add('active');
-        event.target.classList.add('active');
-        
-        // Logica specifica per tab
-        if (tabName === 'analytics') {
-            updateAnalytics();
-        }
-        
-        // NUOVO - per tab assicurazione
-        if (tabName === 'insurance') {
-            populateInsuranceQuoteSelector();
-        }
-    };
-     // Event listeners per la tab assicurazione
+// Event listeners per la tab assicurazione
 document.addEventListener('DOMContentLoaded', function() {
-    // Listener per il selector
     const insuranceSelector = document.getElementById('insurance-quote-selector');
     if (insuranceSelector) {
         insuranceSelector.addEventListener('change', loadInsuranceForQuote);
     }
     
-    // Listener per il bottone sync
     const syncBtn = document.getElementById('syncInsuranceBtn');
     if (syncBtn) {
         syncBtn.addEventListener('click', syncInsuranceWithQuote);
     }
     
-    // Carica dati assicurativi dopo i preventivi
     setTimeout(() => {
         loadInsuranceDataFromGitHub();
     }, 3000);
-}); 
-}
-}
+});
