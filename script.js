@@ -955,12 +955,13 @@ async function loadQuotesFromGitHub() {
         const preventivi = [];
         let erroriCaricamento = 0;
 // Lista di file da ignorare (corrotti o problematici)
+// Lista di file da ignorare (corrotti o problematici)
 const blacklist = [
     'preventivo_1754998670354.json',
     'preventivo_175499867354.json'
 ];
 
-// Nel loop, salta i file in blacklist
+// Carica ogni file con gestione errori migliorata
 for (const file of files) {
     // Salta file in blacklist
     if (blacklist.some(name => file.name.includes(name))) {
@@ -968,11 +969,6 @@ for (const file of files) {
         continue;
     }
     
-    try {
-        console.log('📄 Caricamento file:', file.name);
-        // ... resto del codice        
-// Carica ogni file con gestione errori migliorata
-for (const file of files) {
     try {
         console.log('📄 Caricamento file:', file.name);
         const fileResponse = await fetch(file.download_url);
@@ -1003,16 +999,14 @@ for (const file of files) {
             console.error('❌ Errore parsing JSON per', file.name, ':', parseError.message);
             console.log('Primi 200 caratteri:', fileText.substring(0, 200));
             erroriCaricamento++;
-            
-            // NON bloccare il caricamento degli altri
             continue;
         }
     } catch (e) {
         console.error('❌ Errore caricamento file:', file.name, e);
         erroriCaricamento++;
-        continue; // Continua con il prossimo file
+        continue;
     }
-}
+}  // <-- CHIUSURA CORRETTA DEL FOR
         
         if (erroriCaricamento > 0) {
             showNotification(`⚠️ ${erroriCaricamento} preventivi con errori non caricati`, 'warning');
@@ -4620,4 +4614,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 3000);
 }); 
 }
-
+}
+}
