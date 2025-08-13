@@ -954,7 +954,23 @@ async function loadQuotesFromGitHub() {
         const files = await readDirectory();
         const preventivi = [];
         let erroriCaricamento = 0;
-        
+// Lista di file da ignorare (corrotti o problematici)
+const blacklist = [
+    'preventivo_1754998670354.json',
+    'preventivo_175499867354.json'
+];
+
+// Nel loop, salta i file in blacklist
+for (const file of files) {
+    // Salta file in blacklist
+    if (blacklist.some(name => file.name.includes(name))) {
+        console.warn('⏭️ File corrotto ignorato:', file.name);
+        continue;
+    }
+    
+    try {
+        console.log('📄 Caricamento file:', file.name);
+        // ... resto del codice        
 // Carica ogni file con gestione errori migliorata
 for (const file of files) {
     try {
@@ -2087,9 +2103,39 @@ function syncDatabase() {
 
 function syncQuotes() {
     showNotification('🔄 Aggiornamento preventivi...', 'info');
-    sFromGitHub().then(() => {
+    loadQuotesFromGitHub().then(() => {
         showNotification('✅ Preventivi aggiornati!', 'success');
+    }).catch(error => {
+        console.error('Errore sync:', error);
+        showNotification('❌ Errore aggiornamento preventivi', 'error');
     });
+}
+// Funzione per pulire e ricaricare i preventivi
+function cleanAndReloadQuotes() {
+    if (confirm('⚠️ Questo eliminerà la cache locale e ricaricherà tutto da GitHub. Continuare?')) {
+        console.log('🧹 Pulizia cache locale...');
+        
+        // Pulisci localStorage
+        localStorage.removeItem('hubris_quotes');
+        
+        // Reset array
+        savedQuotes = [];
+        
+        // Aggiorna UI
+        renderSavedQuotes();
+        
+        showNotification('🧹 Cache pulita, ricaricamento da GitHub...', 'info');
+        
+        // Ricarica da GitHub
+        setTimeout(() => {
+            loadQuotesFromGitHub().then(() => {
+                showNotification('✅ Preventivi ricaricati da GitHub!', 'success');
+            }).catch(error => {
+                console.error('Errore ricaricamento:', error);
+                showNotification('❌ Errore nel ricaricamento', 'error');
+            });
+        }, 500);
+    }
 }
 
 function updateConnectionStatus(status, message) {
