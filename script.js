@@ -3918,7 +3918,7 @@ function resetQuote() {
         updateTotals();
         showNotification('🔄 Preventivo resettato', 'info');
     }
-    }
+} 
     
     // ========================================
 // GESTIONE VALORI ASSICURATIVI
